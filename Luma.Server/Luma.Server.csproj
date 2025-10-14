@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>acde796f-e47c-428f-baec-a043da889892</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Luma.Core\Luma.Core.csproj" />
+    <ProjectReference Include="..\Luma.Infrastructure\Luma.Infrastructure.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="luma.config.json" />
+	</ItemGroup>
+	
+  <ItemGroup>
+    <None Update="luma.config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

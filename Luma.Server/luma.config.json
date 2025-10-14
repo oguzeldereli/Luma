@@ -1,0 +1,24 @@
+{
+  "Luma": {
+    "Database": {
+      "Provider": "Microsoft.EntityFrameworkCore.Sqlite",
+      "ConnectionString": "Data Source=auth.db"
+    },
+    "Tokens": {
+      "MagicLinkToken": {
+        "ValidForMinutes": 15, // has to be smaller than or equal to 20
+        "CodeLength": 32 // has to be between 32 and 64 (inclusive)
+      },
+      "NumericCodeToken": {
+        "ValidForMinutes": 10, // has to be smaller than or equal to 20
+        "DigitCount": 6 // has to be between 6 and 12 (inclusive)
+      }
+    },
+    "Keys": {
+      "Hmac": {
+        "DefaultKeyId": "",
+        "HmacKeys": { /* "key-id" : "base64-" */ }
+      }
+    }
+  }
+}
