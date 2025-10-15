@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace Luma.Core.Options.Keys
 {
-    public class HmacKeyOptions
+    public class JwtKeyOptions
     {
+        public string SigningAlgorithm { get; set; } = "RS256";
         public string DefaultKeyId { get; set; } = string.Empty;
-        public Dictionary<string, string> Keys { get; set; } = new();
+        public Dictionary<string, JwtKeyEntry> Keys { get; set; } = new();
     }
 }

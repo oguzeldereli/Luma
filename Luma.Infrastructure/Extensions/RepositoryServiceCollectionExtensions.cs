@@ -17,6 +17,7 @@ namespace Luma.Infrastructure.Extensions
         {
             services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
             services.AddScoped<INumericCodeTokenRepository, NumericCodeTokenRepository>();
+            services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             return services;
         }
     }

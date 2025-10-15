@@ -33,9 +33,9 @@ namespace Luma.Infrastructure.Security
                 }
             }
 
-            if (config?.Hmac?.HmacKeys != null)
+            if (config?.Hmac?.Keys != null)
             {
-                foreach (var (id, base64) in config?.Hmac?.HmacKeys!)
+                foreach (var (id, base64) in config?.Hmac?.Keys!)
                 {
                     if (!_keys.ContainsKey(id))
                     {

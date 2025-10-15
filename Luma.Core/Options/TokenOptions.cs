@@ -11,5 +11,6 @@ namespace Luma.Core.Options
     {
         public MagicLinkTokenOptions MagicLinkToken { get; set; } = new();
         public NumericCodeTokenOptions NumericCodeToken { get; set; } = new();
+        public AccessTokenOptions AccessToken { get; set; } = new();
     }
 }

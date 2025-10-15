@@ -10,5 +10,6 @@ namespace Luma.Core.Options
     public class KeyOptions
     {
         public HmacKeyOptions Hmac { get; set; } = new();
+        public JwtKeyOptions Jwt { get; set; } = new();
     }
 }

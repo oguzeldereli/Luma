@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Luma.Core.Options.Keys
 {
-    public class HmacKeyOptions
+    public class JwtKeyEntry
     {
-        public string DefaultKeyId { get; set; } = string.Empty;
-        public Dictionary<string, string> Keys { get; set; } = new();
+        public string PrivateKeyPath { get; init; } = default!;
+        public string PublicKeyPath { get; init; } = default!;
     }
 }

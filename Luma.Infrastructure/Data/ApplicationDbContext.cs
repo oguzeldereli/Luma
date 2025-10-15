@@ -1,4 +1,5 @@
-﻿using Luma.Models.Auth;
+﻿using Luma.Core.Models.Auth;
+using Luma.Models.Auth;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -9,6 +10,7 @@ namespace Luma.Infrastructure.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
         public DbSet<NumericCodeToken> NumericCodeTokens => Set<NumericCodeToken>();
+        public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }

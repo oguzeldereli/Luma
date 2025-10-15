@@ -48,5 +48,11 @@ namespace Luma.Infrastructure.Security
             var (hashed, key) = _tokenHasher.ComputeHmacSha256(plain, keyId);
             return (plain, hashed, key);
         }
+
+        public (string plain, string hashed, string keyId) GenerateJwtTokenHash(string jwt, string? keyId = null)
+        {
+            var (hashed, key) = _tokenHasher.ComputeHmacSha256(jwt, keyId);
+            return (jwt, hashed, key);
+        }
     }
 }

@@ -12,12 +12,35 @@
       "NumericCodeToken": {
         "ValidForMinutes": 10, // has to be smaller than or equal to 20
         "DigitCount": 6 // has to be between 6 and 12 (inclusive)
+      },
+      "OAuth": {
+        "Clients": [
+          {
+            "ClientId": "luma-admin",
+            "ClientSecret": "abcd1234",
+            "DisplayName": "Luma Admin Panel",
+            "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
+            "AllowedScopes": [ "openid", "profile", "email" ],
+            "IsConfidential": true
+          }
+        ]
+      },
+      "AccessToken": {
+        "Issuer": "Luma",
+        "TokenType": "Jwt", // or Opaque
+        "DefaultScope": "openid profile email",
+        "ValidForMinutes": 15 // has to be between 10 and 30 (inclusive)
       }
     },
     "Keys": {
       "Hmac": {
         "DefaultKeyId": "",
-        "HmacKeys": { /* "key-id" : "base64-" */ }
+        "Keys": { /* "key-id" : "base64-" */ }
+      },
+      "Jwt": {
+        "SigningAlgorithm": "RS256", // or ES256
+        "DefaultKeyId": "",
+        "Keys": { /* "key-id" : { "PrivateKeyPath" : "path", "PublicKeyPath" : "path" } */ }
       }
     }
   }
