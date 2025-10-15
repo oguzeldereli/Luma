@@ -69,7 +69,7 @@ namespace Luma.Infrastructure.Security
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.WriteToken(jwtToken);
 
-            return await _repository.CreateAsync(userId, jwt);
+            return await _repository.CreateJwtAsync(userId, jwt);
         }
 
         public Task<AccessToken?> FindByRawTokenAsync(string rawToken)

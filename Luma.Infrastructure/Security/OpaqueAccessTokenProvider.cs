@@ -12,18 +12,16 @@ namespace Luma.Infrastructure.Security
     public sealed class OpaqueAccessTokenProvider : IAccessTokenProvider
     {
         private readonly IAccessTokenRepository _repository;
-        private readonly IOptions<LumaOptions> _options;
 
         public OpaqueAccessTokenProvider(
             IAccessTokenRepository repository,
             IOptions<LumaOptions> options)
         {
             _repository = repository;
-            _options = options;
         }
 
         public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null)
-            => await _repository.CreateAsync(userId, clientId, scope);
+            => await _repository.CreateOpaqueAsync(userId, clientId, scope);
 
         public Task<AccessToken?> FindByRawTokenAsync(string rawToken)
             => _repository.VerifyAsync(rawToken);

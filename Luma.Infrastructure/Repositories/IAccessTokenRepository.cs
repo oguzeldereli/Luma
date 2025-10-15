@@ -35,7 +35,7 @@ namespace Luma.Infrastructure.Repositories
             _options = options;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string? scope = null)
         {
             var tokenOpts = _options.Value.Tokens.AccessToken;
             var validForMinutes = tokenOpts.ValidForMinutes;
@@ -72,7 +72,7 @@ namespace Luma.Infrastructure.Repositories
             return (token, plain);
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string jwt)
+        public async Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string jwt)
         {
             var defaultKeyId = _tokenHashKeyProvider.DefaultKeyId;
             var tokenOpts = _options.Value.Tokens.AccessToken;
@@ -281,6 +281,6 @@ namespace Luma.Infrastructure.Repositories
         }
 
         async Task<(AccessToken token, string plain)> ITokenRepository<AccessToken>.CreateAsync(long userId)
-            => await CreateAsync(userId, clientId: "unknown");
+            => await CreateOpaqueAsync(userId, clientId: "unknown");
     }
 }

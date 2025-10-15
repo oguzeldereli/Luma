@@ -11,8 +11,8 @@ namespace Luma.Core.Interfaces.Security
 {
     public interface IAccessTokenRepository : ITokenRepository<AccessToken>
     {
-        Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null);
-        Task<(AccessToken token, string plain)> CreateAsync(string jwt);
+        Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string? scope = null);
+        Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string jwt);
         Task<User?> GetUserByTokenIdAsync(long tokenId);
     }
 }
