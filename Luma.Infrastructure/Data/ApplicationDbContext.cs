@@ -11,6 +11,7 @@ namespace Luma.Infrastructure.Data
         public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
         public DbSet<NumericCodeToken> NumericCodeTokens => Set<NumericCodeToken>();
         public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }

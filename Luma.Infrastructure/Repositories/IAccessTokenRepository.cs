@@ -210,6 +210,33 @@ namespace Luma.Infrastructure.Repositories
             return true;
         }
 
+        public async Task<bool> RevokeByIdAsync(long tokenId, string? reason = null)
+        {
+            var token = await _context.AccessTokens.FindAsync(tokenId);
+            if (token == null) return false;
+            token.Revoke(reason);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RevokeByExternalIdAsync(Guid externalId, string? reason = null)
+        {
+            var token = await _context.AccessTokens.FirstOrDefaultAsync(t => t.ExternalId == externalId);
+            if (token == null) return false;
+            token.Revoke(reason);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RevokeByHashAsync(string tokenHash, string? reason = null)
+        {
+            var token = await _context.AccessTokens.FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+            if (token == null) return false;
+            token.Revoke(reason);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<AccessToken?> GetByExternalIdAsync(Guid externalId)
             => await _context.AccessTokens.FirstOrDefaultAsync(t => t.ExternalId == externalId);
 

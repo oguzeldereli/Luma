@@ -1,49 +1,40 @@
 ﻿using Luma.Models.Auth;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Luma.Core.Models.Auth
 {
-    public class AccessToken : TokenBase
+    public class RefreshToken : TokenBase
     {
         public string Scope { get; private set; } = default!;
-        public string Sub { get; private set; } = default!;
         public string Aud { get; private set; } = default!;
         public string Iss { get; private set; } = default!;
-        public string Jti { get; private set; } = default!;
         public bool IsRevoked { get; private set; } = false;
         public DateTime? RevokedAt { get; private set; }
         public string? RevocationReason { get; private set; }
 
-        protected AccessToken() : base() { } 
+        public long AccessTokenId { get; protected set; }
+        public AccessToken AccessToken { get; protected set; } = default!;
 
-        public static AccessToken Create(
-            long userId, 
-            TimeSpan validFor, 
-            string tokenHash, 
-            string tokenHashKey, 
-            string scope,
-            string sub,
-            string aud,
-            string iss,
-            string? jti = null)
+        protected RefreshToken() : base() { }
+
+        public static RefreshToken Create(
+            long userId,
+            TimeSpan validFor,
+            string tokenHash,
+            string tokenHashKeyId,
+            AccessToken accessToken)
         {
-            return new AccessToken
+            return new RefreshToken
             {
                 UserId = userId,
                 ExpiresAt = DateTime.UtcNow.Add(validFor),
                 TokenHash = tokenHash,
-                TokenHashKeyId = tokenHashKey,
-                Scope = scope,
-                Sub = sub,
-                Aud = aud,
-                Iss = iss,
-                Jti = jti ?? Guid.NewGuid().ToString()
+                TokenHashKeyId = tokenHashKeyId,
+                Scope = accessToken.Scope,
+                Aud = accessToken.Aud,
+                Iss = accessToken.Iss,
+                AccessToken = accessToken,
+                AccessTokenId = accessToken.Id
             };
         }
 

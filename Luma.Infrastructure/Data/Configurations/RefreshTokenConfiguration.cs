@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Luma.Infrastructure.Data.Configurations
 {
-    public class AccessTokenConfiguration : IEntityTypeConfiguration<AccessToken>
+    public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
-        public void Configure(EntityTypeBuilder<AccessToken> builder)
+        public void Configure(EntityTypeBuilder<RefreshToken> builder)
         {
             // Primary key
             builder.HasKey(t => t.Id);
@@ -15,7 +15,6 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.Property(t => t.ExternalId)
                 .IsRequired();
 
-            // Token Hash + Key ID (for opaque mode)
             builder.Property(t => t.TokenHash)
                 .IsRequired()
                 .HasMaxLength(128);
@@ -50,10 +49,6 @@ namespace Luma.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(256);
 
-            builder.Property(t => t.Sub)
-                .IsRequired()
-                .HasMaxLength(64);
-
             builder.Property(t => t.Aud)
                 .IsRequired()
                 .HasMaxLength(128);
@@ -62,14 +57,15 @@ namespace Luma.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(256);
 
-            builder.Property(t => t.Jti)
-                .IsRequired()
-                .HasMaxLength(64);
-
             // Relationships
             builder.HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(t => t.AccessToken)
+                .WithMany()
+                .HasForeignKey(t => t.AccessTokenId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Indexes
@@ -77,10 +73,10 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.HasIndex(t => t.ExternalId).IsUnique();
             builder.HasIndex(t => t.ExpiresAt);
             builder.HasIndex(t => t.UserId);
-            builder.HasIndex(t => t.Jti).IsUnique();
+            builder.HasIndex(t => t.AccessTokenId);
 
             // Table mapping
-            builder.ToTable("AccessTokens");
+            builder.ToTable("RefreshTokens");
         }
     }
 }

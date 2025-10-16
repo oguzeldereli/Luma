@@ -14,5 +14,9 @@ namespace Luma.Core.Interfaces.Security
         Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string? scope = null);
         Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string jwt);
         Task<User?> GetUserByTokenIdAsync(long tokenId);
+
+        Task<bool> RevokeByIdAsync(long tokenId, string? reason = null);
+        Task<bool> RevokeByExternalIdAsync(Guid tokenId, string? reason = null);
+        Task<bool> RevokeByHashAsync(string tokenHash, string? reason = null);
     }
 }
