@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace Luma.Core.DTOs.Security
 {
-
     public record RefreshTokenValidationResult(
     bool IsValid,
     string? Reason = null,

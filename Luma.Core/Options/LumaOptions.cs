@@ -12,5 +12,6 @@ namespace Luma.Core.Options
         public DatabaseOptions Database { get; set; } = new();
         public TokenOptions Tokens { get; set; } = new();
         public KeyOptions Keys { get; set; } = new();
+        public OAuthOptions OAuth { get; set; } = new();
     }
 }

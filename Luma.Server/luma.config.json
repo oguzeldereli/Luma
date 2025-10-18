@@ -4,6 +4,18 @@
       "Provider": "Microsoft.EntityFrameworkCore.Sqlite",
       "ConnectionString": "Data Source=auth.db"
     },
+    "OAuth": {
+      "Clients": [
+        {
+          "ClientId": "luma-admin",
+          "ClientSecret": "abcd1234",
+          "DisplayName": "Luma Admin Panel",
+          "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
+          "AllowedScopes": [ "openid", "profile", "email" ],
+          "IsConfidential": true
+        }
+      ]
+    },
     "Tokens": {
       "MagicLinkToken": {
         "ValidForMinutes": 15, // has to be smaller than or equal to 20
@@ -13,23 +25,14 @@
         "ValidForMinutes": 10, // has to be smaller than or equal to 20
         "DigitCount": 6 // has to be between 6 and 12 (inclusive)
       },
-      "OAuth": {
-        "Clients": [
-          {
-            "ClientId": "luma-admin",
-            "ClientSecret": "abcd1234",
-            "DisplayName": "Luma Admin Panel",
-            "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
-            "AllowedScopes": [ "openid", "profile", "email" ],
-            "IsConfidential": true
-          }
-        ]
-      },
       "AccessToken": {
         "Issuer": "Luma",
         "TokenType": "Jwt", // or Opaque
         "DefaultScope": "openid profile email",
         "ValidForMinutes": 15 // has to be between 10 and 30 (inclusive)
+      },
+      "RefreshToken": {
+        "ValidForDays": 30 // has to be between 7 and 90 (inclusive)
       }
     },
     "Keys": {
