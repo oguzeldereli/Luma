@@ -9,5 +9,6 @@ namespace Luma.Core.Interfaces.Auth
 {
     public interface IMagicLinkTokenRepository : ITokenRepository<MagicLinkToken>
     {
+        Task<(MagicLinkToken token, string plain)> CreateAsync(long userId);
     }
 }

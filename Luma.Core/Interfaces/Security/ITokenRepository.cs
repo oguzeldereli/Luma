@@ -4,9 +4,6 @@ namespace Luma.Core.Interfaces.Auth
 {
     public interface ITokenRepository<T> where T : TokenBase
     {
-        // Create
-        Task<(T token, string plain)> CreateAsync(long userId);
-
         // Read
         Task<long?> GetPrimaryIdFromExternalIdAsync(Guid externalId);
         Task<Guid?> GetExternalIdFromPrimaryIdAsync(long id);

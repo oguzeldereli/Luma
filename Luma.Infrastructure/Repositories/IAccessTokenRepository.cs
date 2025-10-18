@@ -306,8 +306,5 @@ namespace Luma.Infrastructure.Repositories
 
             return null;
         }
-
-        async Task<(AccessToken token, string plain)> ITokenRepository<AccessToken>.CreateAsync(long userId)
-            => await CreateOpaqueAsync(userId, clientId: "unknown");
     }
 }

@@ -9,5 +9,6 @@ namespace Luma.Core.Interfaces.Auth
 {
     public interface INumericCodeTokenRepository : ITokenRepository<NumericCodeToken>
     {
+        Task<(NumericCodeToken token, string plain)> CreateAsync(long userId);
     }
 }
