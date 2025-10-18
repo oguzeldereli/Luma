@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Luma.Core.Interfaces.Security
 {
-    internal interface IRefreshTokenRepository : ITokenRepository<RefreshToken>
+    public interface IRefreshTokenRepository : ITokenRepository<RefreshToken>
     {
         Task<(RefreshToken token, string plain)> CreateAsync(long userId, long accessTokenId);
         Task<RefreshToken?> FindByRawTokenAsync(string rawToken);

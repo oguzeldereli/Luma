@@ -17,16 +17,16 @@ namespace Luma.Infrastructure.Security
 {
     public sealed class JwtAccessTokenProvider : IAccessTokenProvider
     {
-        private readonly IJwtSigningKeyProvider _keys;
+        private readonly IJwtSigningKeyProvider _jwtSigningKeyProvider;
         private readonly IAccessTokenRepository _repository;
         private readonly AccessTokenOptions _opts;
 
         public JwtAccessTokenProvider(
-            IJwtSigningKeyProvider keys,
+            IJwtSigningKeyProvider jwtSigningKeyProvider,
             IAccessTokenRepository repository,
             IOptions<LumaOptions> options)
         {
-            _keys = keys;
+            _jwtSigningKeyProvider = jwtSigningKeyProvider;
             _repository = repository;
             _opts = options.Value.Tokens.AccessToken;
         }
@@ -42,7 +42,7 @@ namespace Luma.Infrastructure.Security
             var scp = scope ?? _opts.DefaultScope;
 
             // Create JWT
-            var creds = _keys.GetSigningCredentials();
+            var creds = _jwtSigningKeyProvider.GetSigningCredentials();
             var now = DateTime.UtcNow;
             var expires = now.AddMinutes(_opts.ValidForMinutes);
 
@@ -64,7 +64,7 @@ namespace Luma.Infrastructure.Security
                 signingCredentials: creds
             );
 
-            jwtToken.Header["kid"] = _keys.DefaultKeyId;
+            jwtToken.Header["kid"] = _jwtSigningKeyProvider.DefaultKeyId;
 
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.WriteToken(jwtToken);
@@ -81,7 +81,7 @@ namespace Luma.Infrastructure.Security
         public async Task<AccessTokenValidationResult> ValidateTokenAsync(string rawToken, long userId)
         {
             var handler = new JwtSecurityTokenHandler();
-            var key = _keys.GetVerificationKey(_keys.DefaultKeyId);
+            var key = _jwtSigningKeyProvider.GetVerificationKey(_jwtSigningKeyProvider.DefaultKeyId);
 
             var parameters = new TokenValidationParameters
             {
@@ -113,7 +113,7 @@ namespace Luma.Infrastructure.Security
                     userId: userId,
                     validFor: jwt.ValidTo - jwt.ValidFrom,
                     tokenHash: string.Empty,
-                    tokenHashKey: _keys.DefaultKeyId,
+                    tokenHashKey: _jwtSigningKeyProvider.DefaultKeyId,
                     scope: principal.FindFirst("scope")?.Value ?? "",
                     sub: sub ?? "",
                     aud: jwt.Audiences.FirstOrDefault() ?? "",

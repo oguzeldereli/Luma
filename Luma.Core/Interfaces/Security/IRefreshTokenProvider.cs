@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Luma.Core.Interfaces.Security
 {
-    internal interface IRefreshTokenProvider
+    public interface IRefreshTokenProvider
     {
         Task<(RefreshToken token, string plain)> CreateAsync(long accessTokenId);
         Task<RefreshToken?> FindByRawTokenAsync(string rawToken);

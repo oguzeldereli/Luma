@@ -12,6 +12,7 @@ namespace Luma.Infrastructure.Extensions
         public static IServiceCollection AddLumaSecurity(this IServiceCollection services)
         {
             services.AddSingleton<IHmacKeyProvider, HmacKeyProvider>();
+            services.AddSingleton<IJwtSigningKeyProvider, JwtSigningKeyProvider>();
             services.AddSingleton<TokenHasher>();
             services.AddSingleton<TokenGenerator>();
             services.AddScoped<IAccessTokenProvider>(sp =>
@@ -24,6 +25,7 @@ namespace Luma.Infrastructure.Extensions
                     _ => throw new InvalidOperationException($"Unknown token type '{opts.Tokens.AccessToken.TokenType}'")
                 };
             });
+            services.AddScoped<IRefreshTokenProvider, RefreshTokenProvider>();
 
             return services;
         }
