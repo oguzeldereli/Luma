@@ -25,8 +25,7 @@ namespace Luma.Infrastructure.Security
         public IDTokenProvider(
             IUserRepository userRepository,
             IAccessTokenRepository accessTokenRepository,
-            IJwtSigningKeyProvider jwtSigningKeyProvider,
-            IOptions<LumaOptions> opts)
+            IJwtSigningKeyProvider jwtSigningKeyProvider)
         {
             _userRepository = userRepository;
             _accessTokenRepository = accessTokenRepository;
