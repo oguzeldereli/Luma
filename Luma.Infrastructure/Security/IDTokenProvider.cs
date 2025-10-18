@@ -21,7 +21,6 @@ namespace Luma.Infrastructure.Security
         private readonly IUserRepository _userRepository;
         private readonly IAccessTokenRepository _accessTokenRepository;
         private readonly IJwtSigningKeyProvider _jwtSigningKeyProvider;
-        private readonly IOptions<LumaOptions> _opts;
 
         public IDTokenProvider(
             IUserRepository userRepository,
@@ -32,7 +31,6 @@ namespace Luma.Infrastructure.Security
             _userRepository = userRepository;
             _accessTokenRepository = accessTokenRepository;
             _jwtSigningKeyProvider = jwtSigningKeyProvider;
-            _opts = opts;
         }
 
         public async Task<string> CreateAsync(long accessTokenId)
@@ -53,11 +51,11 @@ namespace Luma.Infrastructure.Security
                 new("middle_name", user.MiddleName ?? string.Empty),
                 new("nickname", user.Nickname ?? string.Empty),
                 new("preferred_username", user.Username ?? string.Empty),
-                new( "profile", user.ProfileUrl ?? string.Empty),
-                new( "picture", user.ProfileImageUrl ?? string.Empty),
-                new( "website", user.WebsiteUrl ?? string.Empty),
-                new( "email", user.Email),
-                new( "email_verified", user.IsEmailVerified.ToString().ToLowerInvariant()),
+                new("profile", user.ProfileUrl ?? string.Empty),
+                new("picture", user.ProfileImageUrl ?? string.Empty),
+                new("website", user.WebsiteUrl ?? string.Empty),
+                new("email", user.Email),
+                new("email_verified", user.IsEmailVerified.ToString().ToLowerInvariant()),
                 new("gender", user.Gender ?? string.Empty),
                 new("birthdate", user.Birthdate?.ToString("yyyy-MM-dd") ?? string.Empty),
                 new("zoneinfo", user.ZoneInfo ?? string.Empty),
