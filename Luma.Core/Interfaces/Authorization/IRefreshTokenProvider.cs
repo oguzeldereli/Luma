@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Luma.Core.Interfaces.Security
+namespace Luma.Core.Interfaces.Authorization
 {
     public interface IRefreshTokenProvider
     {

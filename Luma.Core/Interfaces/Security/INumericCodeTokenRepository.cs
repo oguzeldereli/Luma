@@ -1,4 +1,5 @@
-﻿using Luma.Models.Auth;
+﻿using Luma.Core.Interfaces.Shared;
+using Luma.Models.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,5 +1,6 @@
 ﻿using Luma.Core.DTOs.Security;
 using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Models.Auth;
 using Luma.Core.Options;

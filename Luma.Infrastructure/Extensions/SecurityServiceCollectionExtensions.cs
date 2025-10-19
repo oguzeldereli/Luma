@@ -1,4 +1,5 @@
-﻿using Luma.Core.Interfaces.Security;
+﻿using Luma.Core.Interfaces.Authorization;
+using Luma.Core.Interfaces.Security;
 using Luma.Core.Options;
 using Luma.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;

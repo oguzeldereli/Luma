@@ -1,6 +1,6 @@
 ﻿using Luma.Models.Auth;
 
-namespace Luma.Core.Interfaces.Auth
+namespace Luma.Core.Interfaces.Shared
 {
     public interface ITokenRepository<T> where T : TokenBase
     {

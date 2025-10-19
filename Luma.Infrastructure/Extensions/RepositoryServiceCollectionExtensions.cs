@@ -1,6 +1,6 @@
 ﻿using Luma.Core.Interfaces.Auth;
 using Luma.Core.Interfaces.Authentication;
-using Luma.Core.Interfaces.Security;
+using Luma.Core.Interfaces.Authorization;
 using Luma.Infrastructure.Repositories;
 using Luma.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +21,9 @@ namespace Luma.Infrastructure.Extensions
             services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+
+            services.AddSingleton<IClientRepository, ConfigClientRepository>();
+
             return services;
         }
     }

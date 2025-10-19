@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Luma.Core.Options.OAuth
+namespace Luma.Core.Models.Auth
 {
-    public class ClientConfig
+    public class Client
     {
         public string ClientId { get; set; } = default!;
         public string ClientSecretSHA256_Base64 { get; set; } = default!;

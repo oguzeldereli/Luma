@@ -3,7 +3,7 @@
 namespace Luma.Controllers
 {
     [Route("/")]
-    public class AuthController : Controller
+    public class AuthoriztionController : Controller
     {
         [Route("authorize")]
         public IActionResult StartAuthorizationFlow()

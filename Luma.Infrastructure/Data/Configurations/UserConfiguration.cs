@@ -25,9 +25,6 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.Property(u => u.LastName)
                 .HasMaxLength(64);
 
-            builder.Property(u => u.PathToProfileImage)
-                .HasMaxLength(256);
-
             builder.Property(u => u.ProfileImageUrl)
                 .HasMaxLength(512);
 

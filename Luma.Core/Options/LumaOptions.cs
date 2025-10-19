@@ -13,5 +13,6 @@ namespace Luma.Core.Options
         public TokenOptions Tokens { get; set; } = new();
         public KeyOptions Keys { get; set; } = new();
         public OAuthOptions OAuth { get; set; } = new();
+        public AuthenticationServerOptions AuthenticationServer { get; set; } = new();
     }
 }

@@ -4,12 +4,21 @@
       "Provider": "Microsoft.EntityFrameworkCore.Sqlite",
       "ConnectionString": "Data Source=auth.db"
     },
+    "AuthenticationServer": {
+      "UseAuthentication": true,
+      "UseCustomFiles": false,
+      "CustomFiles": {
+        "ViewMode": "Razor", // or Static
+        "Path": "./wwwroot"
+      }
+    },
     "OAuth": {
       "Clients": [
         {
           "ClientId": "luma-admin",
-          "ClientSecret": "abcd1234",
+          "ClientSecretSHA256_Base64": "abcd1234",
           "DisplayName": "Luma Admin Panel",
+          "RedirectUris": [ "https://myapp.com/callback" ],
           "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
           "AllowedScopes": [ "openid", "profile", "email" ],
           "IsConfidential": true
