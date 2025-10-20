@@ -18,8 +18,10 @@
           "ClientId": "luma-admin",
           "ClientSecretSHA256_Base64": "abcd1234",
           "DisplayName": "Luma Admin Panel",
+          "DefaultRedirectUri": "https://admin.myapp.com/callback",
           "RedirectUris": [ "https://myapp.com/callback" ],
           "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
+          "DefaultScope" : "openid profile email",
           "AllowedScopes": [ "openid", "profile", "email" ],
           "IsConfidential": true
         }

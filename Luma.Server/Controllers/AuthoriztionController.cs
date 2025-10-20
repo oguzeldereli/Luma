@@ -1,14 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Luma.Controllers
 {
     [Route("/")]
     public class AuthoriztionController : Controller
     {
-        [Route("authorize")]
-        public IActionResult StartAuthorizationFlow()
+
+        private readonly IAuthorizeService _authorizeService;
+
+        public AuthoriztionController(
+            IAuthorizeService authorizeService
+            )
         {
-            return Ok();
+            _authorizeService = authorizeService;
+        }
+
+        [Route("authorize")]
+        public  async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
+        {
+            var result = await _authorizeService.StartAuthorizationAsync(authorizeArgs);
+            return Ok(result);
         }
 
         [Route("token")]

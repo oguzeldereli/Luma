@@ -12,7 +12,7 @@ namespace Luma.Core.Interfaces.Authorization
     {
         // TODO: RegisterClient();
         List<Client> GetAllClients();
-        Client FindClientById(string clientId);
+        Client? FindClientById(string clientId);
         bool ClientExists(string clientId);
         bool ClientHasRedirectUri(string clientId, string redirectUri);
         bool ClientAllowsGrantType(string clientId, string grantType);

@@ -26,8 +26,10 @@ namespace Luma.Infrastructure.Repositories
                 ClientId = c.ClientId,
                 ClientSecretSHA256_Base64 = c.ClientSecretSHA256_Base64,
                 DisplayName = c.DisplayName,
+                DefaultRedirectUri = c.DefaultRedirectUri,
                 RedirectUris = c.RedirectUris ?? new List<string>(),
                 AllowedGrantTypes = c.AllowedGrantTypes ?? new List<string>(),
+                DefaultScope = c.DefaultScope ?? "openid profile email",
                 AllowedScopes = c.AllowedScopes ?? new List<string>(),
                 IsConfidential = c.IsConfidential
             }).ToList() ?? new List<Client>();
@@ -80,7 +82,7 @@ namespace Luma.Infrastructure.Repositories
             return client.IsConfidential;
         }
 
-        public Client FindClientById(string clientId)
+        public Client? FindClientById(string clientId)
         {
             var client = _clients.FirstOrDefault(c => c.ClientId == clientId);
             return client!;

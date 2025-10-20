@@ -1,3 +1,4 @@
+using Luma.Core.Extensions;
 using Luma.Core.Interfaces.Auth;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Options;
@@ -68,7 +69,9 @@ switch (databaseConfig.Provider.Trim().ToLowerInvariant())
 // ---------------------------
 // Core services
 // ---------------------------
+builder.Services.AddLumaServices();
 builder.Services.AddLumaSecurity();
+builder.Services.AddLumaProviders();
 builder.Services.AddLumaRepositories();
 builder.Services.AddControllers();
 
