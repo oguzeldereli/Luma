@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 
-namespace Luma.Infrastructure.Security
+namespace Luma.Infrastructure.Providers
 {
     public class JwtSigningKeyProvider : IJwtSigningKeyProvider
     {

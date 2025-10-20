@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Luma.Infrastructure.Security
+namespace Luma.Infrastructure.Providers
 {
     public class RefreshTokenProvider : IRefreshTokenProvider
     {

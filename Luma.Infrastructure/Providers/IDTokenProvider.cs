@@ -15,7 +15,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Luma.Infrastructure.Security
+namespace Luma.Infrastructure.Providers
 {
     public class IDTokenProvider : IIDTokenProvider
     {

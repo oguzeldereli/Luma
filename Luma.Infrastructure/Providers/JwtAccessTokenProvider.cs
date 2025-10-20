@@ -14,7 +14,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace Luma.Infrastructure.Security
+namespace Luma.Infrastructure.Providers
 {
     public sealed class JwtAccessTokenProvider : IAccessTokenProvider
     {

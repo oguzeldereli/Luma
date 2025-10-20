@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Luma.Infrastructure.Security
+namespace Luma.Infrastructure.Providers
 {
     public class HmacKeyProvider : IHmacKeyProvider
     {
