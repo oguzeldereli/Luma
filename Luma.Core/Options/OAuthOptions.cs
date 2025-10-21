@@ -10,5 +10,6 @@ namespace Luma.Core.Options
     public class OAuthOptions
     {
         public List<ClientConfig> Clients { get; set; } = new();
+        public AuthorizationCodeOptions AuthorizationCode { get; set; } = new();
     }
 }

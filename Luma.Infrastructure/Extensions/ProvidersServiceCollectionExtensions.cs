@@ -20,6 +20,7 @@ namespace Luma.Infrastructure.Extensions
             services.AddSingleton<IHmacKeyProvider, HmacKeyProvider>();
             services.AddSingleton<IJwtSigningKeyProvider, JwtSigningKeyProvider>();
             services.AddSingleton<IAuthorizationCodeStateProvider, InMemoryAuthorizationCodeStateProvider>();
+            services.AddSingleton<IAuthorizationCodeProvider, InMemoryAuthorizationCodeProvider>();
 
             services.AddScoped<IRefreshTokenProvider, RefreshTokenProvider>();
             services.AddScoped<IAccessTokenProvider>(sp =>

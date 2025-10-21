@@ -20,7 +20,7 @@ namespace Luma.Controllers
         [Route("authorize")]
         public  async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
         {
-            var result = await _authorizeService.StartAuthorizationAsync(authorizeArgs);
+            var result = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
             return Ok(result);
         }
 

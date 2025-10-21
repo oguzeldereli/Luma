@@ -10,11 +10,10 @@ namespace Luma.Core.Interfaces.Services
 {
     public interface IAuthorizeService
     {
-        Task<OAuthServiceResponse<AuthorizationCodeStateDTO>> StartAuthorizationAsync(AuthorizeRequestDTO request);
-        Task<OAuthServiceResponse<(string clientId, string state)>> SaveAuthorizationCodeStateAsync(AuthorizationCodeStateDTO codeState);
+        Task<OAuthServiceResponse<(string clientId, string state)>> CreateAuthorizationCodeStateAsync(AuthorizeRequestDTO request);
         Task<OAuthServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string state);
         Task<OAuthServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string state);
-        Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(AuthorizationCodeStateDTO codeState);
-        Task<OAuthServiceResponse<bool>> ValidateAuthorizationCodeAsync(string code, string clientId);
+        Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(string state);
+        Task<OAuthServiceResponse<bool>> ValidateAndUseAuthorizationCodeAsync(string code, string clientId);
     }
 }

@@ -13,6 +13,9 @@
       }
     },
     "OAuth": {
+      "AuthorizationCode": {
+        "ValidForSeconds": 90 // has to be between 60 and 120 (inclusive)
+      },
       "Clients": [
         {
           "ClientId": "luma-admin",
@@ -21,7 +24,7 @@
           "DefaultRedirectUri": "https://admin.myapp.com/callback",
           "RedirectUris": [ "https://myapp.com/callback" ],
           "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
-          "DefaultScope" : "openid profile email",
+          "DefaultScope": "openid profile email",
           "AllowedScopes": [ "openid", "profile", "email" ],
           "IsConfidential": true
         }

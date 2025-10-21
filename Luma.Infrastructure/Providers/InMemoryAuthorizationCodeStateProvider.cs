@@ -24,13 +24,13 @@ namespace Luma.Infrastructure.Providers
             _cleanupTimer = new Timer(_ => CleanupExpired(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
 
-        public Task<OAuthServiceResponse<bool>> SaveAsync(string state, AuthorizationCodeStateDTO codeState, int expiresIn = 600)
+        public async Task<bool> SaveAsync(string state, AuthorizationCodeStateDTO codeState, int expiresIn = 600)
         {
             if (string.IsNullOrEmpty(state))
-                return Task.FromResult(OAuthServiceResponse<bool>.Failure("invalid_request", "State cannot be null or empty.", ""));
+                return false;
 
             if (codeState == null)
-                return Task.FromResult(OAuthServiceResponse<bool>.Failure("invalid_request", "AuthorizationCodeStateDTO cannot be null.", state));
+                return false;
 
             var entry = new StoredState
             {
@@ -39,34 +39,33 @@ namespace Luma.Infrastructure.Providers
             };
 
             _store[state] = entry;
-            return Task.FromResult(OAuthServiceResponse<bool>.Success(true, state));
+            return true;
         }
 
-        public Task<OAuthServiceResponse<AuthorizationCodeStateDTO>> GetAsync(string state)
+        public async Task<AuthorizationCodeStateDTO?> GetAsync(string state)
         {
             if (string.IsNullOrEmpty(state))
-                return Task.FromResult(OAuthServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "State is required.", ""));
+                return null;
 
             if (_store.TryGetValue(state, out var entry))
             {
                 if (DateTimeOffset.UtcNow <= entry.ExpiresAt)
-                    return Task.FromResult(OAuthServiceResponse<AuthorizationCodeStateDTO>.Success(entry.Data, state));
+                    return entry.Data;
 
-                // Expired → remove
                 _store.TryRemove(state, out _);
-                return Task.FromResult(OAuthServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "Authorization code state expired.", state));
+                return null;
             }
 
-            return Task.FromResult(OAuthServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "Authorization code state not found.", state));
+            return null;
         }
 
-        public Task<OAuthServiceResponse<bool>> DeleteAsync(string state)
+        public async Task<bool> DeleteAsync(string state)
         {
             if (string.IsNullOrEmpty(state))
-                return Task.FromResult(OAuthServiceResponse<bool>.Failure("invalid_request", "State is required.", state));
+                return false;
 
             var removed = _store.TryRemove(state, out _);
-            return Task.FromResult(OAuthServiceResponse<bool>.Success(removed, state));
+            return removed;
         }
 
         private void CleanupExpired()
