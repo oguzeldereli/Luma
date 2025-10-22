@@ -244,7 +244,7 @@ namespace Luma.Core.Services.Authorization
             if (existingCode.Used)
                 return OAuthServiceResponse<bool>.Failure("invalid_grant", "The authorization code has already been used.", clientId);
             existingCode.Used = true;
-            var updateResult = await _authorizationCodeProvider.DeleteAsync(existingCode);
+            var updateResult = await _authorizationCodeProvider.DeleteAsync(code);
             if (updateResult == false)
                 return OAuthServiceResponse<bool>.Failure("server_error", "Failed to mark authorization code as used.", clientId);
             return OAuthServiceResponse<bool>.Success(true, clientId);
