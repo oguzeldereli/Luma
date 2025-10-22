@@ -7,6 +7,7 @@ namespace Luma.Infrastructure.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        public DbSet<UserLoginSession> UserLoginSessions => Set<UserLoginSession>();
         public DbSet<User> Users => Set<User>();
         public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
         public DbSet<NumericCodeToken> NumericCodeTokens => Set<NumericCodeToken>();

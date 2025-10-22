@@ -17,11 +17,12 @@ namespace Luma.Controllers
             _authorizeService = authorizeService;
         }
 
+        [HttpGet]
         [Route("authorize")]
         public  async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
         {
             var result = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
-            return Ok(result);
+            return Redirect("/login");
         }
 
         [Route("token")]

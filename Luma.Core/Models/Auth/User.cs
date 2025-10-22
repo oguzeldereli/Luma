@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Luma.Core.Models.Auth;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
@@ -37,6 +38,7 @@ namespace Luma.Models.Auth
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public UserStatus Status { get; set; } = UserStatus.Active;
+        public List<UserLoginSession> LoginSessions { get; set; } = new List<UserLoginSession>();
 
         public string GetFullName()
         {

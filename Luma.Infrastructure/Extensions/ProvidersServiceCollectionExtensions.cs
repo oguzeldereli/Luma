@@ -1,4 +1,5 @@
-﻿using Luma.Core.Interfaces.Authorization;
+﻿using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Options;
 using Luma.Infrastructure.Providers;
@@ -22,6 +23,7 @@ namespace Luma.Infrastructure.Extensions
             services.AddSingleton<IAuthorizationCodeStateProvider, InMemoryAuthorizationCodeStateProvider>();
             services.AddSingleton<IAuthorizationCodeProvider, InMemoryAuthorizationCodeProvider>();
 
+            services.AddScoped<IUserLoginSessionProvider, UserLoginSessionProvider>();
             services.AddScoped<IRefreshTokenProvider, RefreshTokenProvider>();
             services.AddScoped<IAccessTokenProvider>(sp =>
             {
