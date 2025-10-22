@@ -73,7 +73,9 @@ builder.Services.AddLumaServices();
 builder.Services.AddLumaSecurity();
 builder.Services.AddLumaProviders();
 builder.Services.AddLumaRepositories();
+builder.Services.AddLumaWeb();
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 
 // ---------------------------
 // UI / Templates

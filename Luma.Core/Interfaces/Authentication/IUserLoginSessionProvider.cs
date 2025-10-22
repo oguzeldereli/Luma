@@ -14,7 +14,6 @@ namespace Luma.Core.Interfaces.Authentication
         Task<List<UserLoginSession>> GetActiveSessionsByUserIdAsync(long userId);
         Task<(string plain, UserLoginSession session)> CreateAsync(
             long userId,
-            int validForMinutes = 1440,
             string? ipAddress = null,
             string? userAgemt = null,
             string? clientId = null,

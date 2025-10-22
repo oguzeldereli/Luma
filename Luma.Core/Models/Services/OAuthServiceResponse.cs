@@ -11,8 +11,8 @@ namespace Luma.Core.Models.Services
         public T? Data { get; set; }
         public string ErrorCode { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
-        public string ErrorUri { get; set; } = string.Empty;
-        public string State { get; set; } = string.Empty;
+        public string? ErrorUri { get; set; } = string.Empty;
+        public string? State { get; set; } = string.Empty;
 
         protected OAuthServiceResponse() { }
 
@@ -32,7 +32,7 @@ namespace Luma.Core.Models.Services
                 ErrorCode = errorCode,
                 ErrorMessage = errorMessage,
                 State = state,
-                ErrorUri = errorUri ?? string.Empty
+                ErrorUri = errorUri
             };
         }
     }

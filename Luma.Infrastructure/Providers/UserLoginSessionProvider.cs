@@ -46,6 +46,9 @@ namespace Luma.Infrastructure.Providers
                 return null;
             }
 
+            if (session.IsActive == false)
+                return null;
+
             return session; 
         }
 
@@ -71,7 +74,7 @@ namespace Luma.Infrastructure.Providers
             if (!userExists)
                 throw new ArgumentException("User does not exist", nameof(userId));
 
-            var validFor = _options.Value.AuthenticationServer.UserSessionsValidForMinutes;
+            var validFor = _options.Value.AuthenticationServer.UserLoginSessionsValidForMinutes;
             if (validFor is < 60 or > 10080)
                 validFor = 1440; // default to 1 day if out of range
 
