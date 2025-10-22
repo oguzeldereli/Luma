@@ -49,11 +49,11 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.Property(s => s.AuthMethod)
                 .HasMaxLength(64);
 
-            builder.Property(s => s.SessionToken)
+            builder.Property(s => s.SessionTokenHash)
                 .HasMaxLength(256);
 
             builder.HasIndex(s => s.UserId);
-            builder.HasIndex(s => s.SessionToken)
+            builder.HasIndex(s => s.SessionTokenHash)
                    .IsUnique(true);
 
             builder.HasOne<User>()

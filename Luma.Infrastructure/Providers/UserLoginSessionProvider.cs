@@ -1,6 +1,9 @@
 ﻿using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Models.Auth;
+using Luma.Core.Options;
 using Luma.Infrastructure.Repositories;
+using Luma.Infrastructure.Security;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,11 +12,21 @@ namespace Luma.Infrastructure.Providers
 {
     public class UserLoginSessionProvider : IUserLoginSessionProvider
     {
+        private readonly IUserRepository _userRepository;
         private readonly IUserLoginSessionRepository _repository;
+        private readonly TokenGenerator _generator;
+        private readonly IOptions<LumaOptions> _options;
 
-        public UserLoginSessionProvider(IUserLoginSessionRepository repository)
+        public UserLoginSessionProvider(
+            IUserRepository userRepository,
+            IUserLoginSessionRepository repository,
+            TokenGenerator generator,
+            IOptions<LumaOptions> options)
         {
+            _userRepository = userRepository;
             _repository = repository;
+            _generator = generator;
+            _options = options;
         }
 
         public async Task<UserLoginSession?> GetBySessionTokenAsync(string sessionToken)
@@ -27,13 +40,13 @@ namespace Luma.Infrastructure.Providers
                 return null;
 
             // check expiration and activity
-            if (session.ExpiresAtUtc.HasValue && session.ExpiresAtUtc.Value <= DateTime.UtcNow)
+            if (session.ExpiresAtUtc is { } expiresAt && expiresAt <= DateTime.UtcNow)
             {
                 await _repository.RevokeAsync(session.Id, "Session expired");
                 return null;
             }
 
-            return session;
+            return session; 
         }
 
         public async Task<UserLoginSession?> GetByExternalIdAsync(Guid externalId)
@@ -46,17 +59,39 @@ namespace Luma.Infrastructure.Providers
             return await _repository.GetActiveSessionsByUserIdAsync(userId);
         }
 
-        public async Task<UserLoginSession> CreateAsync(UserLoginSession session, int expiresInSeconds = 28800)
+        public async Task<(string plain, UserLoginSession session)> CreateAsync(
+            long userId, 
+            string? ipAddress = null,
+            string? userAgent = null,
+            string? clientId = null,
+            string? authMethod = null,
+            string? metadataJson = null)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
+            var userExists = await _userRepository.GetByIdAsync(userId) == null ? false : true;
+            if (!userExists)
+                throw new ArgumentException("User does not exist", nameof(userId));
 
-            session.CreatedAtUtc = DateTime.UtcNow;
+            var validFor = _options.Value.AuthenticationServer.UserSessionsValidForMinutes;
+            if (validFor is < 60 or > 10080)
+                validFor = 1440; // default to 1 day if out of range
+
+            var (plain, hashed, keyId) = _generator.GenerateOpaqueToken(32);
+            UserLoginSession session = UserLoginSession.Create(
+                userId: userId,
+                validForMinutes: validFor,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                clientId: clientId,
+                authMethod: authMethod,
+                sessionTokenHash: hashed,
+                sessionTokenKeyId: keyId,
+                metadataJson: metadataJson
+            );
+
             session.LastActivityUtc = DateTime.UtcNow;
-            session.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresInSeconds);
             session.IsActive = true;
 
-            return await _repository.CreateAsync(session);
+            return (plain, await _repository.CreateAsync(session));
         }
 
         public async Task<bool> RefreshActivityAsync(long sessionId)

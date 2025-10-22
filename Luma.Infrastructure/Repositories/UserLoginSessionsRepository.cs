@@ -1,6 +1,8 @@
 ﻿using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Security;
 using Luma.Core.Models.Auth;
 using Luma.Infrastructure.Data;
+using Luma.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -12,10 +14,17 @@ namespace Luma.Infrastructure.Repositories
     public class UserLoginSessionRepository : IUserLoginSessionRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly TokenHasher _tokenHasher;
+        private readonly IHmacKeyProvider _keyProvider;
 
-        public UserLoginSessionRepository(ApplicationDbContext context)
+        public UserLoginSessionRepository(
+            ApplicationDbContext context,
+            TokenHasher tokenHasher,
+            IHmacKeyProvider keyProvider)
         {
             _context = context;
+            _tokenHasher = tokenHasher;
+            _keyProvider = keyProvider;
         }
 
         public async Task<UserLoginSession?> GetByIdAsync(long id)
@@ -31,8 +40,27 @@ namespace Luma.Infrastructure.Repositories
 
         public async Task<UserLoginSession?> GetBySessionTokenAsync(string sessionToken)
         {
-            return await _context.UserLoginSessions
-                .FirstOrDefaultAsync(s => s.SessionToken == sessionToken && s.IsActive);
+            // try with default key first
+            var defaultKeyId = _keyProvider.DefaultKeyId;
+            var defaultHash = _tokenHasher.ComputeHashForLookup(sessionToken, defaultKeyId);
+            var session = await _context.UserLoginSessions
+                .FirstOrDefaultAsync(s => s.SessionTokenHash == defaultHash && s.SessionTokenKeyId == defaultKeyId);
+            if (session != null)
+                return session;
+
+            // try all keys to find a match
+            var allKeys = _keyProvider.AllKeyIds;
+            foreach (var keyId in allKeys)
+            {
+                var hash = _tokenHasher.ComputeHashForLookup(sessionToken, keyId);
+                var found = await _context.UserLoginSessions
+                    .FirstOrDefaultAsync(s => s.SessionTokenHash == hash && s.SessionTokenKeyId == keyId);
+
+                if (found != null && found.ExpiresAtUtc <= DateTime.UtcNow && found.IsActive)
+                    return found;
+            }
+
+            return null;
         }
 
         public async Task<List<UserLoginSession>> GetActiveSessionsByUserIdAsync(long userId)
@@ -45,7 +73,6 @@ namespace Luma.Infrastructure.Repositories
 
         public async Task<UserLoginSession> CreateAsync(UserLoginSession session)
         {
-            session.CreatedAtUtc = DateTime.UtcNow;
             session.LastActivityUtc = DateTime.UtcNow;
 
             _context.UserLoginSessions.Add(session);

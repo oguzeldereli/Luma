@@ -8,18 +8,19 @@ namespace Luma.Core.Models.Auth
 {
     public class UserLoginSession
     {
-        public long Id { get; set; }
-        public Guid ExternalId { get; set; }
-        public long UserId { get; set; }
-        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-        public DateTime? ExpiresAtUtc { get; set; }
+        public long Id { get; protected set; }
+        public Guid ExternalId { get; protected set; }
+        public long UserId { get; protected set; }
+        public DateTime CreatedAtUtc { get; protected set; } = DateTime.UtcNow;
+        public DateTime? ExpiresAtUtc { get; protected set; }
         public DateTime LastActivityUtc { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
-        public string? IpAddress { get; set; }
-        public string? UserAgent { get; set; }
-        public string? ClientId { get; set; }
-        public string? AuthMethod { get; set; }
-        public string? SessionToken { get; set; }
+        public string? IpAddress { get; protected set; }
+        public string? UserAgent { get; protected set; }
+        public string? ClientId { get; protected set; }
+        public string? AuthMethod { get; protected set; }
+        public string? SessionTokenHash { get; protected set; }
+        public string? SessionTokenKeyId { get; protected set; }
         public string? MetadataJson { get; set; }
 
         public void Revoke(string? reason = null)
@@ -35,5 +36,34 @@ namespace Luma.Core.Models.Auth
         {
             ExternalId = Guid.NewGuid();
         }   
+
+        public static UserLoginSession Create(
+            long userId, 
+            int validForMinutes = 1440, 
+            string? ipAddress = null, 
+            string? userAgent = null,
+            string? clientId = null,
+            string? authMethod = null,
+            string? sessionTokenHash = null,
+            string? sessionTokenKeyId = null,
+            string? metadataJson = null)
+        {
+            var session = new UserLoginSession
+            {
+                UserId = userId,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                ClientId = clientId,
+                AuthMethod = authMethod,
+                SessionTokenHash = sessionTokenHash,
+                SessionTokenKeyId = sessionTokenKeyId,
+                MetadataJson = metadataJson,
+                CreatedAtUtc = DateTime.UtcNow,
+                LastActivityUtc = DateTime.UtcNow,
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(validForMinutes),
+                IsActive = true
+            };
+            return session;
+        }
     }
 }

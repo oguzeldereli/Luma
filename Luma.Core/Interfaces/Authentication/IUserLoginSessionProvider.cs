@@ -12,7 +12,14 @@ namespace Luma.Core.Interfaces.Authentication
         Task<UserLoginSession?> GetBySessionTokenAsync(string sessionToken);
         Task<UserLoginSession?> GetByExternalIdAsync(Guid externalId);
         Task<List<UserLoginSession>> GetActiveSessionsByUserIdAsync(long userId);
-        Task<UserLoginSession> CreateAsync(UserLoginSession session, int expiresInSeconds = 28800); // default 8 hours
+        Task<(string plain, UserLoginSession session)> CreateAsync(
+            long userId,
+            int validForMinutes = 1440,
+            string? ipAddress = null,
+            string? userAgemt = null,
+            string? clientId = null,
+            string? authMethod = null,
+            string? metadataJson = null);
         Task<bool> RefreshActivityAsync(long sessionId);
         Task<bool> RevokeAsync(long sessionId, string? reason = null);
         Task<bool> DeleteAsync(long sessionId);

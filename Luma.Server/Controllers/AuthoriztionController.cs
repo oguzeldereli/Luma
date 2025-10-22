@@ -22,6 +22,8 @@ namespace Luma.Controllers
         public  async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
         {
             var result = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
+            // 
+
             return Redirect("/login");
         }
 
