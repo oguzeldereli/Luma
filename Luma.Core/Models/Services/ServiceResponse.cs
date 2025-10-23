@@ -9,8 +9,8 @@ namespace Luma.Core.Models.Services
     public class ServiceResponse<T>
     {
         public T? Data { get; set; }
-        public string ErrorCode { get; set; } = string.Empty;
-        public string ErrorMessage { get; set; } = string.Empty;
+        public string? ErrorCode { get; set; } = null;
+        public string? ErrorMessage { get; set; } = null;
 
         protected ServiceResponse() { }
 

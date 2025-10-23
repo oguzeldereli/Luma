@@ -3,7 +3,15 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Dev specific files
+
+Luma.Server/Keys
+Luma.Infrastructure/Data/Migrations
+auth.db
+
+# DotEnv files
 .env
+
 
 # User-specific files
 *.rsuser

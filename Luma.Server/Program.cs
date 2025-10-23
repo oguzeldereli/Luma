@@ -55,7 +55,7 @@ switch (databaseConfig.Provider.Trim().ToLowerInvariant())
         break;
     case "postgres":
     case "npgsql":
-    case "microsoft.entityframeworkcore.postgresql":
+    case "npgsql.entityframeworkcore.postgresql":
         builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseNpgsql(databaseConfig.ConnectionString));
         break;
     case "sqlserver":

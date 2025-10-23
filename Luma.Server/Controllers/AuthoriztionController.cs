@@ -30,7 +30,7 @@ namespace Luma.Controllers
         public async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
         {
             var (redirectSafe, result) = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
-            if (result.ErrorCode != null || result.Data == null)
+            if (!string.IsNullOrWhiteSpace(result.ErrorCode) || result.Data == null)
             {
                 return result.ToErrorResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
             }
@@ -73,7 +73,7 @@ namespace Luma.Controllers
             }
 
             var auth = await _authorizeService.GenerateAuthorizationCodeAsync(result.State!);
-            if (auth.ErrorCode != null)
+            if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
                 return auth.ToErrorResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
             }

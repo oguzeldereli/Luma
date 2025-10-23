@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace Luma.Server.Utility
 {
-    public static class OAuthErrorHelper
+    public static class OAuthResponseHelper
     {
         public static IActionResult ToErrorResponse<T>(this OAuthServiceResponse<T> result, bool redirectSafe, string? redirectUri = null, string? responseMode = null)
         {

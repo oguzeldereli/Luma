@@ -20,11 +20,11 @@
       },
       "Clients": [
         {
-          "ClientId": "luma-admin",
-          "ClientSecretSHA256_Base64": "abcd1234",
-          "DisplayName": "Luma Admin Panel",
-          "DefaultRedirectUri": "https://admin.myapp.com/callback",
-          "RedirectUris": [ "https://myapp.com/callback" ],
+          "ClientId": "luma-self-hosted",
+          "ClientSecretSHA256_Base64": "Y2UyMGQ3OWRlNjRiYzk2M2ZlMjljYmNmYzNlMDNmZTE2MWIzYTQ1ZDc2YzJmYzNiYmY2NmExZWY3OGViYjdiZA==",
+          "DisplayName": "Luma Auth",
+          "DefaultRedirectUri": "https://localhost/calback",
+          "RedirectUris": [ "https://localhost/calback" ],
           "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
           "DefaultScope": "openid profile email",
           "AllowedScopes": [ "openid", "profile", "email" ],
@@ -53,13 +53,21 @@
     },
     "Keys": {
       "Hmac": {
-        "DefaultKeyId": "",
-        "Keys": { /* "key-id" : "base64-" */ }
+        "DefaultKeyId": "V1",
+        "Keys": {
+          /* "key-id" : "base64-" */
+        }
       },
       "Jwt": {
         "SigningAlgorithm": "RS256", // or ES256
-        "DefaultKeyId": "",
-        "Keys": { /* "key-id" : { "PrivateKeyPath" : "path", "PublicKeyPath" : "path" } */ }
+        "DefaultKeyId": "V1",
+        "Keys": {
+          /* "key-id" : { "PrivateKeyPath" : "path", "PublicKeyPath" : "path" } */
+          "V1": {
+            "PrivateKeyPath": "./Keys/private.pem",
+            "PublicKeyPath": "./Keys/public.pem"
+          }
+        }
       }
     }
   }
