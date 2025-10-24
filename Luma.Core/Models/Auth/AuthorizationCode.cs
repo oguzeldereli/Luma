@@ -17,6 +17,7 @@ namespace Luma.Core.Models.Auth
         public string Scope { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset ExpiresAt { get; set; }
+        public long UserId { get; set; }
         public bool Used { get; set; } = false;
     }
 }

@@ -7,7 +7,7 @@
     "AuthenticationServer": {
       "UserLoginSessionsCookieName": "Luma.UserLoginSession",
       "UserLoginSessionsValidForMinutes": 1440, // has to be between 60 and 10080 (inclusive)
-      "UseAuthentication": true,
+      "EnableUserRegisterationByUI": true,
       "UseCustomFiles": false,
       "CustomFiles": {
         "ViewMode": "Razor", // or Static
@@ -53,7 +53,7 @@
     },
     "Keys": {
       "Hmac": {
-        "DefaultKeyId": "V1",
+        "DefaultKeyId": "",
         "Keys": {
           /* "key-id" : "base64-" */
         }

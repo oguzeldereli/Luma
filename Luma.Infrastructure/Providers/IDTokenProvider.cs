@@ -33,7 +33,7 @@ namespace Luma.Infrastructure.Providers
             _jwtSigningKeyProvider = jwtSigningKeyProvider;
         }
 
-        public async Task<string> CreateAsync(long accessTokenId)
+        public async Task<string> CreateAsync(long accessTokenId, string? nonce = null)
         {
             var accessToken = await _accessTokenRepository.GetByIdAsync(accessTokenId);
             if (accessToken is null)
@@ -63,7 +63,8 @@ namespace Luma.Infrastructure.Providers
                 new("phone_number", user.Phone ?? string.Empty),
                 new("phone_number_verified", user.IsPhoneVerified.ToString().ToLowerInvariant()),
                 new("address", user.AddressJson ?? string.Empty),
-                new("updated_at", user.UpdatedAt.ToString("yyyy-MM-dd") ?? string.Empty)
+                new("updated_at", user.UpdatedAt.ToString("yyyy-MM-dd") ?? string.Empty),
+                new("nonce", nonce ?? string.Empty)
             }.Where(x => !string.IsNullOrEmpty(x.Value)).ToList();
 
             var creds = _jwtSigningKeyProvider.GetSigningCredentials();

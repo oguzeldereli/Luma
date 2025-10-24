@@ -178,7 +178,7 @@ namespace Luma.Core.Services.Authorization
             return ServiceResponse<bool>.Success(true);
         }
 
-        public async Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(string state)
+        public async Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(long userId, string state)
         {
             var existingStateResult = await _authorizationCodeStateProvider.GetAsync(state);
             if (existingStateResult == null)
@@ -221,6 +221,8 @@ namespace Luma.Core.Services.Authorization
                 CodeChallenge = existingStateResult.codeChallenge,
                 CodeChallengeMethod = existingStateResult.codeChallengeMethod,
                 Scope = existingStateResult.scope ?? client.DefaultScope,
+                Nonce = existingStateResult.nonce,
+                UserId = userId,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresIn)
             };
@@ -229,25 +231,40 @@ namespace Luma.Core.Services.Authorization
             if (codeCreated == false)
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to store authorization code.", state);
 
+            var deleteStateResult = await _authorizationCodeStateProvider.DeleteAsync(state);
+            if (deleteStateResult == false)
+                return OAuthServiceResponse<string>.Failure("server_error", "Failed to delete authorization code state after generating code.", state);
+
             if (string.IsNullOrEmpty(code))
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to generate authorization code.", state);
             return OAuthServiceResponse<string>.Success(code, state);
         }
 
-        public async Task<OAuthServiceResponse<bool>> ValidateAndUseAuthorizationCodeAsync(string code, string clientId)
+        public async Task<OAuthServiceResponse<AuthorizationCode>> ValidateAndUseAuthorizationCodeAsync(string code, string clientId)
         {
             var existingCode = await _authorizationCodeProvider.GetAsync(code);
             if (existingCode == null)
-                return OAuthServiceResponse<bool>.Failure("invalid_grant", "The specified authorization code is invalid or has expired.", clientId);
+                return OAuthServiceResponse<AuthorizationCode>.Failure("invalid_grant", "The specified authorization code is invalid or has expired.");
             if (existingCode.ClientId != clientId)
-                return OAuthServiceResponse<bool>.Failure("invalid_grant", "The client_id does not match the authorization code.", clientId);
+                return OAuthServiceResponse<AuthorizationCode>.Failure("invalid_grant", "The client_id does not match the authorization code.");
             if (existingCode.Used)
-                return OAuthServiceResponse<bool>.Failure("invalid_grant", "The authorization code has already been used.", clientId);
+                return OAuthServiceResponse<AuthorizationCode>.Failure("invalid_grant", "The authorization code has already been used.");
             existingCode.Used = true;
             var updateResult = await _authorizationCodeProvider.DeleteAsync(code);
             if (updateResult == false)
-                return OAuthServiceResponse<bool>.Failure("server_error", "Failed to mark authorization code as used.", clientId);
-            return OAuthServiceResponse<bool>.Success(true, clientId);
+                return OAuthServiceResponse<AuthorizationCode>.Failure("server_error", "Failed to mark authorization code as used.");
+            return OAuthServiceResponse<AuthorizationCode>.Success(existingCode);
+        }
+
+        public async Task<bool> VerifyPkceCodeVerifierAsync(string codeVerifier, string codeChallenge, string codeChallengeMethod)
+        {
+            if (codeChallengeMethod != "S256")
+                return false;
+            using var sha256 = SHA256.Create();
+            var verifierBytes = Encoding.ASCII.GetBytes(codeVerifier);
+            var hashBytes = sha256.ComputeHash(verifierBytes);
+            var computedChallenge = Base64UrlEncoder.Encode(hashBytes);
+            return string.Equals(computedChallenge, codeChallenge, StringComparison.Ordinal);
         }
     }
 }

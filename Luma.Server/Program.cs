@@ -6,6 +6,7 @@ using Luma.Infrastructure.Data;
 using Luma.Infrastructure.Extensions;
 using Luma.Infrastructure.Repositories;
 using Luma.Infrastructure.Security;
+using Luma.Server.Middlewares.YourNamespace.Middleware;
 using Luma.Server.Utility;            // where RazorViewLocationExpander lives
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
@@ -82,29 +83,26 @@ builder.Services.AddHttpContextAccessor();
 // ---------------------------
 var auth = lumaConfig.AuthenticationServer;
 
-if (auth.UseAuthentication)
+if (auth.UseCustomFiles)
 {
-    if (auth.UseCustomFiles)
+    // Custom files selected
+    if (auth.CustomFiles.ViewMode.Equals("Razor", StringComparison.OrdinalIgnoreCase))
     {
-        // Custom files selected
-        if (auth.CustomFiles.ViewMode.Equals("Razor", StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
+        builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
 
-            // Use your expander name exactly as requested
-            builder.Services.Configure<RazorViewEngineOptions>(opt =>
-            {
-                opt.ViewLocationExpanders.Add(
-                    new RazorViewLocationExpander(auth.CustomFiles.Path)
-                );
-            });
-        }
+        // Use your expander name exactly as requested
+        builder.Services.Configure<RazorViewEngineOptions>(opt =>
+        {
+            opt.ViewLocationExpanders.Add(
+                new RazorViewLocationExpander(auth.CustomFiles.Path)
+            );
+        });
     }
-    else
-    {
-        // Built-in (embedded) Razor templates
-        builder.Services.AddRazorPages();
-    }
+}
+else
+{
+    // Built-in (embedded) Razor templates
+    builder.Services.AddRazorPages();
 }
 
 // ---------------------------
@@ -115,8 +113,7 @@ var app = builder.Build();
 // ---------------------------
 // Static files (only when using custom static files)
 // ---------------------------
-if (auth.UseAuthentication &&
-    auth.UseCustomFiles &&
+if (auth.UseCustomFiles &&
     auth.CustomFiles.ViewMode.Equals("Static", StringComparison.OrdinalIgnoreCase))
 {
     var root = Path.GetFullPath(auth.CustomFiles.Path ?? "./wwwroot");
@@ -131,11 +128,11 @@ if (auth.UseAuthentication &&
 // Middleware & endpoints
 // ---------------------------
 app.UseHttpsRedirection();
+app.UseClientCredentialsMiddleware();
 app.MapControllers();
 
 // Map Razor pages only when Razor is active (built-in or custom Razor)
-if (auth.UseAuthentication &&
-    (!auth.UseCustomFiles || auth.CustomFiles.ViewMode.Equals("Razor", StringComparison.OrdinalIgnoreCase)))
+if (!auth.UseCustomFiles || auth.CustomFiles.ViewMode.Equals("Razor", StringComparison.OrdinalIgnoreCase))
 {
     app.MapRazorPages();
 }

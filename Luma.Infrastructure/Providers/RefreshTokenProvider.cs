@@ -41,15 +41,19 @@ namespace Luma.Infrastructure.Providers
             return await _refreshTokenRepository.FindByRawTokenAsync(rawToken);
         }
 
-        public async Task<RefreshTokenValidationResult> ValidateTokenAsync(string rawToken, long accessTokenId)
+        public async Task<RefreshTokenValidationResult> ValidateAndUseTokenAsync(string rawToken, string clientId)
         {
             var token = await _refreshTokenRepository.VerifyAsync(rawToken);
 
             if (token is null)
                 return RefreshTokenValidationResult.Invalid("Token not found or invalid.");
 
-            if (token.AccessTokenId != accessTokenId)
-                return RefreshTokenValidationResult.Invalid("Token does not belong to the access token.");
+            var accessToken = await _accessTokenRepository.GetByIdAsync(token.AccessTokenId);
+            if (accessToken is null)
+                return RefreshTokenValidationResult.Invalid("Associated access token not found.");
+
+            if (token.Aud != clientId)
+                return RefreshTokenValidationResult.Invalid("Token audience does not match client ID.");
 
             if (token.IsExpired)
                 return RefreshTokenValidationResult.Invalid("Token is expired.");
@@ -60,6 +64,7 @@ namespace Luma.Infrastructure.Providers
             if (token.IsUsed)
                 return RefreshTokenValidationResult.Invalid("Token has already been used.");
 
+            await _refreshTokenRepository.MarkUsedByIdAsync(token.Id);
             return RefreshTokenValidationResult.Valid(token);
         }
     }

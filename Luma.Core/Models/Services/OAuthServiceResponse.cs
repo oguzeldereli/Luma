@@ -16,7 +16,7 @@ namespace Luma.Core.Models.Services
 
         protected OAuthServiceResponse() { }
 
-        public static OAuthServiceResponse<T> Success(T data, string? state)
+        public static OAuthServiceResponse<T> Success(T data, string? state = null)
         {
             return new OAuthServiceResponse<T>
             {
@@ -25,7 +25,7 @@ namespace Luma.Core.Models.Services
             };
         }
 
-        public static OAuthServiceResponse<T> Failure(string errorCode, string errorMessage, string? state, string? errorUri = null)
+        public static OAuthServiceResponse<T> Failure(string errorCode, string errorMessage, string? state = null, string? errorUri = null)
         {
             return new OAuthServiceResponse<T>
             {

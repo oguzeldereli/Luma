@@ -11,7 +11,7 @@ namespace Luma.Core.Options
     {
         public string UserLoginSessionsCookieName { get; set; } = "Luma.UserLoginSession";
         public int UserLoginSessionsValidForMinutes { get; set; } = 1440;
-        public bool UseAuthentication { get; set; }
+        public bool EnableUserRegisterationByUI { get; set; } = true;
         public bool UseCustomFiles { get; set; }
         public CustomFilesOptions CustomFiles { get; set; } = new();
     }

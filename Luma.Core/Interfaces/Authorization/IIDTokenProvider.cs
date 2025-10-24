@@ -9,6 +9,6 @@ namespace Luma.Core.Interfaces.Authorization
 {
     public interface IIDTokenProvider
     {
-        Task<string> CreateAsync(long accessTokenId);
+        Task<string> CreateAsync(long accessTokenId, string? nonce = null);
     }
 }

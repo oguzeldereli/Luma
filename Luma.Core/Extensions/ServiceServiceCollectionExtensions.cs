@@ -17,6 +17,7 @@ namespace Luma.Core.Extensions
         public static IServiceCollection AddLumaServices(this IServiceCollection services)
         {
             services.AddScoped<IAuthorizeService, AuthorizeService>();
+            services.AddScoped<ITokenService, TokenService>();
 
             return services;
         }

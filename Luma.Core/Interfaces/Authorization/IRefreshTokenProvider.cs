@@ -12,6 +12,6 @@ namespace Luma.Core.Interfaces.Authorization
     {
         Task<(RefreshToken token, string plain)> CreateAsync(long accessTokenId);
         Task<RefreshToken?> FindByRawTokenAsync(string rawToken);
-        Task<RefreshTokenValidationResult> ValidateTokenAsync(string rawToken, long accessTokenId);
+        Task<RefreshTokenValidationResult> ValidateAndUseTokenAsync(string rawToken, string clientId);
     }
 }
