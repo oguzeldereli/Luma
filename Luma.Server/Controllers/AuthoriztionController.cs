@@ -72,7 +72,7 @@ namespace Luma.Controllers
                 return Redirect($"/select-account?state={result.State}");
             }
 
-            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(result.State!);
+            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, result.State!);
             if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
                 return auth.ToErrorResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
