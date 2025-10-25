@@ -11,28 +11,31 @@ namespace Luma.Controllers
     public class AuthoriztionController : Controller
     {
         private readonly IAuthorizeService _authorizeService;
+        private readonly ITokenService _tokenService;
         private readonly IUserLoginSessionCookieAccessor _userLoginSessionCookieAccessor;
         private readonly IUserLoginSessionProvider _userLoginSessionProvider;
 
         public AuthoriztionController(
             IAuthorizeService authorizeService,
+            ITokenService tokenService,
             IUserLoginSessionCookieAccessor userLoginSessionCookieAccessor,
             IUserLoginSessionProvider userLoginSessionProvider
             )
         {
             _authorizeService = authorizeService;
+            _tokenService = tokenService;
             _userLoginSessionCookieAccessor = userLoginSessionCookieAccessor;
             _userLoginSessionProvider = userLoginSessionProvider;
         }
 
         [HttpGet]
         [Route("authorize")]
-        public async Task<IActionResult> StartAuthorizationFlowAsync(AuthorizeRequestDTO authorizeArgs)
+        public async Task<IActionResult> StartAuthorizationFlowAsync([FromQuery] AuthorizeRequestDTO authorizeArgs)
         {
             var (redirectSafe, result) = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
             if (!string.IsNullOrWhiteSpace(result.ErrorCode) || result.Data == null)
             {
-                return result.ToErrorResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
+                return result.ToErrorRedirectResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
             }
 
             var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
@@ -75,7 +78,7 @@ namespace Luma.Controllers
             var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, result.State!);
             if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
-                return auth.ToErrorResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
+                return auth.ToErrorRedirectResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
             }
 
             if (authorizeArgs.response_mode == "form_post")
@@ -104,10 +107,79 @@ namespace Luma.Controllers
             }
         }
 
+        [HttpPost]
         [Route("token")]
-        public IActionResult TokenExchange()
+        public async Task<IActionResult> TokenExchange([FromForm] TokenEndpointDTO request)
         {
-            return Ok();
+            var clientId = HttpContext.Items["ClientId"] ?? request.client_id;
+            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret;
+            if (clientId == null || clientSecret == null)
+            {
+                return BadRequest(new
+                {
+                    error = "invalid_client",
+                    error_description = "Incomplete authentication data."
+                });
+            }
+
+            if (request.grant_type == "authorization_code")
+            {
+                TokenRequestDTO tokenRequestDTO = new TokenRequestDTO(
+                    grant_type: request.grant_type,
+                    code: request.code!,
+                    redirect_uri: request.redirect_uri!,
+                    client_id: clientId.ToString()!,
+                    client_secret: clientSecret.ToString()!,
+                    code_verifier: request.code_verifier
+                    );
+
+                var response = await _tokenService.IssueTokensFromAuthorizationCode(tokenRequestDTO);
+                if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
+                {
+                    return BadRequest(new
+                    {
+                        error = response.ErrorCode,
+                        error_description = response.ErrorMessage,
+                        error_uri = response.ErrorUri
+                    });
+                }
+                else
+                {
+                    return Ok(response.Data);
+                }
+            }
+            else if (request.grant_type == "refresh_token")
+            {
+                TokenRefreshDTO tokenRefreshDTO = new TokenRefreshDTO(
+                    grant_type: request.grant_type,
+                    refresh_token: request.refresh_token!,
+                    client_id: clientId.ToString()!,
+                    client_secret: clientSecret.ToString()!,
+                    scope: request.scope
+                    );
+                var response = await _tokenService.IssueTokensFromRefreshToken(tokenRefreshDTO);
+                if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
+                {
+                    return BadRequest(new
+                    {
+                        error = response.ErrorCode,
+                        error_description = response.ErrorMessage,
+                        error_uri = response.ErrorUri
+                    });
+                }
+                else
+                {
+                    return Ok(response.Data);
+                }
+            }
+            else
+            {
+                return BadRequest(new
+                {
+                    error = "unsupported_grant_type",
+                    error_description = "The specified grant_type is not supported."
+                });
+            }
         }
 
         [Route("mtls/token")]

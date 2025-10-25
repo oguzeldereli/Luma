@@ -6,7 +6,7 @@ namespace Luma.Server.Utility
 {
     public static class OAuthResponseHelper
     {
-        public static IActionResult ToErrorResponse<T>(this OAuthServiceResponse<T> result, bool redirectSafe, string? redirectUri = null, string? responseMode = null)
+        public static IActionResult ToErrorRedirectResponse<T>(this OAuthServiceResponse<T> result, bool redirectSafe, string? redirectUri = null, string? responseMode = null)
         {
             if (result == null)
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
