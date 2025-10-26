@@ -35,6 +35,7 @@ namespace Luma.Infrastructure.Extensions
                     _ => throw new InvalidOperationException($"Unknown token type '{opts.Tokens.AccessToken.TokenType}'")
                 };
             });
+            services.AddScoped<IIDTokenProvider, IDTokenProvider>();
 
             return services;
         }

@@ -6,90 +6,66 @@ namespace Luma.Server.Utility
 {
     public static class OAuthResponseHelper
     {
-        public static IActionResult ToErrorRedirectResponse<T>(this OAuthServiceResponse<T> result, bool redirectSafe, string? redirectUri = null, string? responseMode = null)
+        public static IActionResult ToErrorResponse<T>(this OAuthServiceResponse<T> result)
         {
             if (result == null)
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
 
-            // throw if this is not an error response
             if (string.IsNullOrEmpty(result.ErrorCode))
                 throw new InvalidOperationException("The OAuthServiceResponse does not represent an error.");
 
-            if (redirectSafe && responseMode == "form_post" && !string.IsNullOrWhiteSpace(redirectUri))
+            if (string.Equals(result.ResponseMode, "form_post", StringComparison.OrdinalIgnoreCase))
             {
                 var html = $@"
                     <html><body onload=""document.forms[0].submit()"">
-                        <form method='post' action='{redirectUri}'>
+                        <form method='post' action='{result.RedirectUri}'>
                             <input type='hidden' name='error' value='{result.ErrorCode}' />
                             <input type='hidden' name='error_description' value='{result.ErrorMessage}' />
+                            {(string.IsNullOrEmpty(result.ErrorUri) ? "" : $"<input type='hidden' name='error_uri' value='{result.ErrorUri}' />")}
                             {(string.IsNullOrEmpty(result.State) ? "" : $"<input type='hidden' name='state' value='{result.State}' />")}
                         </form>
                     </body></html>";
 
-                return new ContentResult { ContentType = "text/html", Content = html };
-            }
-            else if (redirectSafe && !string.IsNullOrWhiteSpace(redirectUri))
-            {
-                var uri = QueryHelpers.AddQueryString(redirectUri ?? "", new Dictionary<string, string?>
+                return new ContentResult
                 {
-                    ["error"] = result.ErrorCode,
-                    ["error_description"] = result.ErrorMessage,
-                    ["state"] = result.State,
-                    ["error_uri"] = string.IsNullOrWhiteSpace(result.ErrorUri) ? null : result.ErrorUri
-                });
-                return new RedirectResult(uri);
-            }
-            else
-            {
-                var errorResponse = new
-                {
-                    error = result.ErrorCode,
-                    error_description = result.ErrorMessage,
-                    state = result.State,
-                    error_uri = string.IsNullOrWhiteSpace(result.ErrorUri) ? null : result.ErrorUri
-                };
-
-                var statusCode = GetStatusCodeForError(result.ErrorCode);
-                return new ObjectResult(errorResponse)
-                {
-                    StatusCode = statusCode
+                    ContentType = "text/html",
+                    StatusCode = StatusCodes.Status200OK,
+                    Content = html
                 };
             }
-        }
 
-        private static int GetStatusCodeForError(string errorCode)
-        {
-            return errorCode switch
+            if (!string.IsNullOrEmpty(result.RedirectUri))
             {
-                // 400 — Bad Request: malformed or invalid request
-                "invalid_request" => StatusCodes.Status400BadRequest,
-                "invalid_scope" => StatusCodes.Status400BadRequest,
-                "unsupported_grant_type" => StatusCodes.Status400BadRequest,
-                "unsupported_response_type" => StatusCodes.Status400BadRequest,
-                "unauthorized_client" => StatusCodes.Status400BadRequest,
+                var queryParams = new List<string>();
 
-                // 401 — Unauthorized: invalid client credentials or token
-                "invalid_client" => StatusCodes.Status401Unauthorized,
-                "invalid_token" => StatusCodes.Status401Unauthorized,
+                void AddParam(string key, string? value)
+                {
+                    if (!string.IsNullOrEmpty(value))
+                        queryParams.Add($"{key}={Uri.EscapeDataString(value)}");
+                }
 
-                // 403 — Forbidden: user or client not permitted
-                "access_denied" => StatusCodes.Status403Forbidden,
+                AddParam("error", result.ErrorCode);
+                AddParam("error_description", result.ErrorMessage);
+                AddParam("error_uri", result.ErrorUri);
+                AddParam("state", result.State);
 
-                // 500 — Server error
-                "server_error" => StatusCodes.Status500InternalServerError,
+                var separator = result.RedirectUri.Contains("?") ? "&" : "?";
+                var redirectUrl = $"{result.RedirectUri}{separator}{string.Join("&", queryParams)}";
 
-                // 503 — Temporarily unavailable
-                "temporarily_unavailable" => StatusCodes.Status503ServiceUnavailable,
+                return new RedirectResult(redirectUrl, false);
+            }
 
-                // 302 — Interaction required (OIDC)
-                "interaction_required" => StatusCodes.Status302Found,
-                "login_required" => StatusCodes.Status302Found,
-                "consent_required" => StatusCodes.Status302Found,
-                "account_selection_required" => StatusCodes.Status302Found,
-
-                // Default fallback
-                _ => StatusCodes.Status400BadRequest
+            var errorResponse = new
+            {
+                error = result.ErrorCode,
+                error_description = result.ErrorMessage,
+                error_uri = string.IsNullOrWhiteSpace(result.ErrorUri) ? null : result.ErrorUri,
+                state = result.State
             };
+
+            var statusCode = result.StatusCode ?? StatusCodes.Status400BadRequest;
+
+            return new ObjectResult(errorResponse) { StatusCode = statusCode };
         }
     }
 }

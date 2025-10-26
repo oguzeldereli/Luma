@@ -32,10 +32,10 @@ namespace Luma.Controllers
         [Route("authorize")]
         public async Task<IActionResult> StartAuthorizationFlowAsync([FromQuery] AuthorizeRequestDTO authorizeArgs)
         {
-            var (redirectSafe, result) = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
+            var result = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
             if (!string.IsNullOrWhiteSpace(result.ErrorCode) || result.Data == null)
             {
-                return result.ToErrorRedirectResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
+                return result.ToErrorResponse();
             }
 
             var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
@@ -78,7 +78,7 @@ namespace Luma.Controllers
             var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, result.State!);
             if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
-                return auth.ToErrorRedirectResponse(redirectSafe, authorizeArgs.redirect_uri, authorizeArgs.response_mode);
+                return auth.ToErrorResponse();
             }
 
             if (authorizeArgs.response_mode == "form_post")
@@ -136,12 +136,7 @@ namespace Luma.Controllers
                 var response = await _tokenService.IssueTokensFromAuthorizationCode(tokenRequestDTO);
                 if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
                 {
-                    return BadRequest(new
-                    {
-                        error = response.ErrorCode,
-                        error_description = response.ErrorMessage,
-                        error_uri = response.ErrorUri
-                    });
+                    return response.ToErrorResponse();
                 }
                 else
                 {
@@ -160,12 +155,7 @@ namespace Luma.Controllers
                 var response = await _tokenService.IssueTokensFromRefreshToken(tokenRefreshDTO);
                 if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
                 {
-                    return BadRequest(new
-                    {
-                        error = response.ErrorCode,
-                        error_description = response.ErrorMessage,
-                        error_uri = response.ErrorUri
-                    });
+                    return response.ToErrorResponse();
                 }
                 else
                 {

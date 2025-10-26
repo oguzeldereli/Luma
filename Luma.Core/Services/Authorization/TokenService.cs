@@ -40,7 +40,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "unsupported_grant_type",
                     "The grant_type provided is not supported.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (!_clientRepository.ClientExists(request.client_id))
@@ -48,7 +48,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
                     "The client_id provided is invalid.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (!_clientRepository.ClientAllowsGrantType(request.client_id, request.grant_type))
@@ -56,7 +56,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "unauthorized_client",
                     "The client is not authorized to use this grant type.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
@@ -64,7 +64,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
                     "The client authentication failed.",
-                    null);
+                    401, null, null, null, null);
             }
 
             if (!_clientRepository.ClientHasRedirectUri(request.client_id, request.redirect_uri))
@@ -72,7 +72,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_grant",
                     "The redirect_uri provided is invalid.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (string.IsNullOrWhiteSpace(request.code))
@@ -80,7 +80,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_request",
                     "The authorization code is required.",
-                    null);
+                    400, null, null, null, null);
             }
 
             var authCodeResult = await _authorizeService.ValidateAndUseAuthorizationCodeAsync(request.code, request.client_id);
@@ -89,7 +89,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     authCodeResult.ErrorCode,
                     authCodeResult.ErrorMessage ?? "The specified authorization code is invalid.",
-                    null);
+                    400, null, null, null, null);
             }
 
             var authCode = authCodeResult.Data;
@@ -98,7 +98,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_grant",
                     "The authorization code is invalid or has already been used.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (authCode.ClientId != request.client_id )
@@ -106,7 +106,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_grant",
                     "The authorization code was not issued to the authenticated client.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (authCode.RedirectUri != request.redirect_uri)
@@ -114,7 +114,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_grant",
                     "The redirect_uri does not match the one used in the authorization request.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (authCode.CodeChallengeMethod != null)
@@ -124,7 +124,7 @@ namespace Luma.Core.Services.Authorization
                     return OAuthServiceResponse<TokenResponseDTO>.Failure(
                         "invalid_request",
                         "The code_verifier is required for this authorization code.",
-                        null);
+                    400, null, null, null, null);
                 }
 
                 if (authCode.CodeChallenge == null)
@@ -132,7 +132,7 @@ namespace Luma.Core.Services.Authorization
                     return OAuthServiceResponse<TokenResponseDTO>.Failure(
                         "invalid_request",
                         "The authorization code does not have a code_challenge associated with it.",
-                        null);
+                    400, null, null, null, null);
                 }
 
                 var isValidPkce = await _authorizeService.VerifyPkceCodeVerifierAsync(request.code_verifier, authCode.CodeChallenge, authCode.CodeChallengeMethod);
@@ -141,7 +141,7 @@ namespace Luma.Core.Services.Authorization
                     return OAuthServiceResponse<TokenResponseDTO>.Failure(
                         "invalid_grant",
                         "The PKCE code_verifier is invalid.",
-                        null);
+                        400, null, null, null, null);
                 }
             }
 
@@ -167,7 +167,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "unsupported_grant_type",
                     "The grant_type provided is not supported.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (string.IsNullOrWhiteSpace(request.client_id) || !_clientRepository.ClientExists(request.client_id))
@@ -175,7 +175,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
                     "The client_id provided is invalid.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (!_clientRepository.ClientAllowsGrantType(request.client_id, request.grant_type))
@@ -183,7 +183,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "unauthorized_client",
                     "The client is not authorized to use this grant type.",
-                    null);
+                    400, null, null, null, null);
             }
 
             if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
@@ -191,7 +191,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
                     "The client authentication failed.",
-                    null);
+                    401, null, null, null, null);
             }
 
             if (string.IsNullOrWhiteSpace(request.refresh_token))
@@ -199,7 +199,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_request",
                     "The refresh_token is required.",
-                    null);
+                    400, null, null, null, null);
             }
 
             var rtokenResult = await _refreshTokenProvider.ValidateAndUseTokenAsync(request.refresh_token, request.client_id);
@@ -208,7 +208,7 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_grant",
                     rtokenResult.Reason ?? "The refresh token is invalid.",
-                    null);
+                    400, null, null, null, null);
             }
 
             var refreshToken = rtokenResult.Token;
