@@ -24,6 +24,7 @@ namespace Luma.Core.Models.Auth
 
         public static AccessToken Create(
             long userId, 
+            string clientId,
             TimeSpan validFor, 
             string tokenHash, 
             string tokenHashKey, 
@@ -36,6 +37,7 @@ namespace Luma.Core.Models.Auth
             return new AccessToken
             {
                 UserId = userId,
+                ClientId = clientId,
                 ExpiresAt = DateTime.UtcNow.Add(validFor),
                 TokenHash = tokenHash,
                 TokenHashKeyId = tokenHashKey,

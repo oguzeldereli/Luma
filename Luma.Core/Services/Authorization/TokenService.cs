@@ -76,7 +76,7 @@ namespace Luma.Core.Services.Authorization
                     400, null, null, null, null);
             }
 
-            if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
+            if (_clientRepository.ClientIsConfidential(request.client_id) && !_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
             {
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
@@ -155,6 +155,13 @@ namespace Luma.Core.Services.Authorization
                 }
             }
 
+            if (!_clientRepository.ClientIsConfidential(request.client_id) && request.code_verifier == null)
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_request",
+                    "The code_verifier is required for public clients.",
+                    400, null, null, null, null);
+            }
 
             if (authCode.CodeChallengeMethod != null)
             {
@@ -237,7 +244,7 @@ namespace Luma.Core.Services.Authorization
                     400, null, null, null, null);
             }
 
-            if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
+            if (_clientRepository.ClientIsConfidential(request.client_id) && !_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
             {
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
@@ -309,6 +316,45 @@ namespace Luma.Core.Services.Authorization
             );
 
             return OAuthServiceResponse<TokenResponseDTO>.Success(tokenResponse);
+        }
+
+        public async Task<OAuthServiceResponse<TokenIntrospectionResponseDTO>> IntrospectToken(TokenIntrospectionRequestDTO request)
+        {
+            var client = _clientRepository.FindClientById(request.client_id);
+            if (client == null)
+            {
+                return OAuthServiceResponse<TokenIntrospectionResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client_id provided is invalid.",
+                    401, null, null, null, null);
+            }
+
+            if (!_clientRepository.ClientIsConfidential(request.client_id))
+            {
+                return OAuthServiceResponse<TokenIntrospectionResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client must be confidential to use this endpoint.",
+                    401, null, null, null, null);
+            }
+
+            if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
+            {
+                return OAuthServiceResponse<TokenIntrospectionResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client authentication failed.",
+                    401, null, null, null, null);
+            }
+
+            var atokenIntrospection = await _accessTokenProvider.IntrospectTokenAsync(request.token);
+            var rTokenIntrospection = await _refreshTokenProvider.IntrospectTokenAsync(request.token);
+            
+            return OAuthServiceResponse<TokenIntrospectionResponseDTO>.Success(
+                atokenIntrospection.active ? atokenIntrospection : rTokenIntrospection);
+        }
+
+        public async Task<OAuthServiceResponse<bool>> RevokeToken(TokenRevocationRequestDTO request)
+        {
+            throw new NotImplementedException();
         }
     }
 }

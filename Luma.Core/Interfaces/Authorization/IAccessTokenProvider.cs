@@ -1,4 +1,5 @@
-﻿using Luma.Core.DTOs.Security;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.DTOs.Security;
 using Luma.Core.Models.Auth;
 using System;
 using System.Collections.Generic;
@@ -10,9 +11,9 @@ namespace Luma.Core.Interfaces.Authorization
 {
     public interface IAccessTokenProvider
     {
-        Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null);
+        Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string resource, string? scope = null);
         Task<AccessToken?> FindByRawTokenAsync(string rawToken);
         Task<AccessTokenValidationResult> ValidateTokenAsync(string rawToken, long userId);
-        Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken);
+        Task<TokenIntrospectionResponseDTO> IntrospectTokenAsync(string rawToken);
     }
 }

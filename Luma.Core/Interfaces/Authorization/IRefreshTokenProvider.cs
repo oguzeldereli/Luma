@@ -1,4 +1,5 @@
-﻿using Luma.Core.DTOs.Security;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.DTOs.Security;
 using Luma.Core.Models.Auth;
 using System;
 using System.Collections.Generic;
@@ -13,5 +14,6 @@ namespace Luma.Core.Interfaces.Authorization
         Task<(RefreshToken token, string plain)> CreateAsync(long accessTokenId);
         Task<RefreshToken?> FindByRawTokenAsync(string rawToken);
         Task<RefreshTokenValidationResult> ValidateAndUseTokenAsync(string rawToken, string clientId);
+        Task<TokenIntrospectionResponseDTO> IntrospectTokenAsync(string rawToken);
     }
 }

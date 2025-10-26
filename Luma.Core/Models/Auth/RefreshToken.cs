@@ -6,8 +6,10 @@ namespace Luma.Core.Models.Auth
     public class RefreshToken : TokenBase
     {
         public string Scope { get; private set; } = default!;
+        public string Sub { get; private set; } = default!;
         public string Aud { get; private set; } = default!;
         public string Iss { get; private set; } = default!;
+        public string Jti { get; private set; } = default!;
         public bool IsRevoked { get; private set; } = false;
         public DateTime? RevokedAt { get; private set; }
         public string? RevocationReason { get; private set; }
@@ -19,6 +21,7 @@ namespace Luma.Core.Models.Auth
 
         public static RefreshToken Create(
             long userId,
+            string clientId,
             TimeSpan validFor,
             string tokenHash,
             string tokenHashKeyId,
@@ -27,12 +30,15 @@ namespace Luma.Core.Models.Auth
             return new RefreshToken
             {
                 UserId = userId,
+                ClientId = clientId,
                 ExpiresAt = DateTime.UtcNow.Add(validFor),
                 TokenHash = tokenHash,
                 TokenHashKeyId = tokenHashKeyId,
                 Scope = accessToken.Scope,
+                Sub = accessToken.Sub,
                 Aud = accessToken.Aud,
                 Iss = accessToken.Iss,
+                Jti = Guid.NewGuid().ToString(),
                 AccessToken = accessToken,
                 AccessTokenId = accessToken.Id
             };

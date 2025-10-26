@@ -1,4 +1,5 @@
-﻿using Luma.Core.DTOs.Security;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.DTOs.Security;
 using Luma.Core.Interfaces.Auth;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
@@ -32,7 +33,7 @@ namespace Luma.Infrastructure.Providers
             _opts = options.Value.Tokens.AccessToken;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string resource, string? scope = null)
         {
             // Retrieve the user (for ExternalId)
             var user = await _repository.GetUserByTokenIdAsync(userId);
@@ -70,13 +71,12 @@ namespace Luma.Infrastructure.Providers
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.WriteToken(jwtToken);
 
-            return await _repository.CreateJwtAsync(userId, jwt);
+            return await _repository.CreateJwtAsync(userId, clientId, jwt);
         }
 
-        public Task<AccessToken?> FindByRawTokenAsync(string rawToken)
+        public async Task<AccessToken?> FindByRawTokenAsync(string rawToken)
         {
-            // You could optionally parse JTI and check DB if you store them
-            return Task.FromResult<AccessToken?>(null);
+            return await _repository.VerifyAsync(rawToken);
         }
 
         public async Task<AccessTokenValidationResult> ValidateTokenAsync(string rawToken, long userId)
@@ -109,17 +109,9 @@ namespace Luma.Infrastructure.Providers
                 if (sub != user.ExternalId.ToString())
                     return AccessTokenValidationResult.Invalid("Subject mismatch.");
 
-                // Construct token representation
-                var token = AccessToken.Create(
-                    userId: userId,
-                    validFor: jwt.ValidTo - jwt.ValidFrom,
-                    tokenHash: string.Empty,
-                    tokenHashKey: _jwtSigningKeyProvider.DefaultKeyId,
-                    scope: principal.FindFirst("scope")?.Value ?? "",
-                    sub: sub ?? "",
-                    aud: jwt.Audiences.FirstOrDefault() ?? "",
-                    iss: jwt.Issuer
-                );
+                var token = await _repository.VerifyAsync(rawToken);
+                if (token == null)
+                    return AccessTokenValidationResult.Invalid("Token not found in repository.");
 
                 return AccessTokenValidationResult.Valid(token);
             }
@@ -129,36 +121,34 @@ namespace Luma.Infrastructure.Providers
             }
         }
 
-        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken)
+        public async Task<TokenIntrospectionResponseDTO> IntrospectTokenAsync(string rawToken)
         {
-            var handler = new JwtSecurityTokenHandler();
+            var token = await _repository.VerifyAsync(rawToken);
+            if (token == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
 
-            if (!handler.CanReadToken(rawToken))
-                return new AccessTokenIntrospectionResponse(false);
+            var active = token != null && !token.IsExpired && !token.IsUsed;
+            var user = await _repository.GetUserByTokenIdAsync(token!.Id);
+            if (user == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
 
-            var jwt = handler.ReadJwtToken(rawToken);
-            var now = DateTime.UtcNow;
-
-            bool active = jwt.ValidTo > now;
-            var sub = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
-            var aud = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Aud)?.Value;
-            var scope = jwt.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
-
-            return new AccessTokenIntrospectionResponse(
-                Active: active,
-                Scope: scope,
-                ClientId: aud,
-                UserName: null,
-                Sub: sub,
-                Aud: aud,
-                Iss: jwt.Issuer,
-                Jti: jwt.Id,
-                Exp: jwt.ValidTo,
-                Iat: jwt.ValidFrom,
-                Nbf: jwt.Payload.NotBefore.HasValue
-                    ? DateTimeOffset.FromUnixTimeSeconds(jwt.Payload.NotBefore.Value).UtcDateTime
-                    : null,
-                TokenType: "access_token"
+            return new TokenIntrospectionResponseDTO(
+                active: active,
+                scope: token.Scope,
+                client_id: token.ClientId,
+                username: user?.Username,
+                sub: token.Sub,
+                aud: token.Aud,
+                iss: token.Iss,
+                jti: token.Jti,
+                exp: token.ExpiresAt,
+                iat: token.CreatedAt,
+                nbf: null,
+                token_type: "access_token"
             );
         }
     }

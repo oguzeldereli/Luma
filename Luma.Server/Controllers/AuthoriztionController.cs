@@ -110,8 +110,8 @@ namespace Luma.Controllers
         public async Task<IActionResult> Token([FromForm] TokenEndpointDTO request)
         {
             var clientId = HttpContext.Items["ClientId"] ?? request.client_id;
-            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret;
-            if (clientId == null || clientSecret == null)
+            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret ?? "";
+            if (clientId == null)
             {
                 return BadRequest(new
                 {
@@ -183,34 +183,64 @@ namespace Luma.Controllers
             }
         }
 
-        [Route("mtls/token")]
-        public IActionResult MTLS_TokenExchange([FromForm] TokenEndpointDTO request)
-        {
-            return Ok();
-        }
-
         [Route("introspect")]
-        public IActionResult IntrospectToken()
+        public async Task<IActionResult> IntrospectToken([FromForm] TokenIntrospectionEndpointDTO request)
         {
-            return Ok();
-        }
+            var clientId = HttpContext.Items["ClientId"] ?? request.client_id;
+            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret;
+            if (clientId == null || clientSecret == null)
+            {
+                return BadRequest(new
+                {
+                    error = "invalid_client",
+                    error_description = "Incomplete authentication data."
+                });
+            }
 
-        [Route("mtls/introspect")]
-        public IActionResult MTLS_IntrospectToken()
-        {
-            return Ok();
-        }
+            TokenIntrospectionRequestDTO introspectionRequestDTO = new TokenIntrospectionRequestDTO(
+                token: request.token,
+                client_id: clientId.ToString()!,
+                client_secret: clientSecret.ToString()!,
+                token_type_hint: request.token_type_hint
+                );
 
-        [Route("token/exchange")]
-        public IActionResult TokenExchangeToken()
-        {
-            return Ok();
+            var result = await _tokenService.IntrospectToken(introspectionRequestDTO);
+            if (result.ErrorCode != null || result.Data == null)
+            {
+                return result.ToErrorResponse();
+            }
+
+            return Ok(result.Data);
         }
 
         [Route("revoke")]
-        public IActionResult RevokeToken()
+        public async Task<IActionResult> RevokeToken([FromForm] TokenRevocationEndpointDTO request)
         {
-            return Ok();
+            var clientId = HttpContext.Items["ClientId"] ?? request.client_id;
+            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret;
+            if (clientId == null || clientSecret == null)
+            {
+                return BadRequest(new
+                {
+                    error = "invalid_client",
+                    error_description = "Incomplete authentication data."
+                });
+            }
+
+            TokenRevocationRequestDTO tokenRevocationRequestDTO = new TokenRevocationRequestDTO(
+                token: request.token,
+                client_id: clientId.ToString()!,
+                client_secret: clientSecret.ToString()!,
+                token_type_hint: request.token_type_hint
+                );
+
+            var result = await _tokenService.RevokeToken(tokenRevocationRequestDTO);
+            if (result.ErrorCode != null)
+            {
+                return result.ToErrorResponse();
+            }
+
+            return Ok(result.Data);
         }
 
         [Route("userinfo")]
@@ -227,12 +257,6 @@ namespace Luma.Controllers
 
         [Route(".well-known/oauth-authorization-server")]
         public IActionResult OAuthAuthorizationServerMetadata()
-        {
-            return Ok();
-        }
-
-        [Route("device/code")]
-        public IActionResult DeviceCode()
         {
             return Ok();
         }

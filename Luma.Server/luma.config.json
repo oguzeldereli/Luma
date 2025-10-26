@@ -46,7 +46,6 @@
       "AccessToken": {
         "Issuer": "Luma",
         "TokenType": "Jwt", // or Opaque
-        "DefaultScope": "openid profile email",
         "ValidForMinutes": 15 // has to be between 10 and 30 (inclusive)
       },
       "RefreshToken": {

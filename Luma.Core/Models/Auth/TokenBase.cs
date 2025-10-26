@@ -13,6 +13,7 @@ namespace Luma.Models.Auth
         public DateTime ExpiresAt { get; protected set; }
         public bool IsUsed { get; protected set; } = false;
         public DateTime? UsedAt { get; protected set; }
+        public string ClientId { get; protected set; } = default!;
 
         public long UserId { get; protected set; }
         public User User { get; protected set; } = default!;

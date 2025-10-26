@@ -1,4 +1,5 @@
-﻿using Luma.Core.DTOs.Security;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.DTOs.Security;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Models.Auth;
 using Luma.Core.Options;
@@ -66,6 +67,37 @@ namespace Luma.Infrastructure.Providers
 
             await _refreshTokenRepository.MarkUsedByIdAsync(token.Id);
             return RefreshTokenValidationResult.Valid(token);
+        }
+
+        public async Task<TokenIntrospectionResponseDTO?> IntrospectTokenAsync(string rawToken)
+        {
+            var token = await _refreshTokenRepository.VerifyAsync(rawToken);
+            if (token == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
+
+            var user = await _accessTokenRepository.GetUserByTokenIdAsync(token.AccessTokenId);
+            var active = token != null && !token.IsExpired && !token.IsRevoked && !token.IsUsed;
+            if (user == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
+
+            return new TokenIntrospectionResponseDTO(
+                active: active,
+                scope: token.Scope,
+                client_id: token.ClientId,
+                username: user?.Username,
+                sub: token.Sub,
+                aud: token.Aud,
+                iss: token.Iss,
+                jti: token.Jti,
+                exp: token.ExpiresAt,
+                iat: token.CreatedAt,
+                nbf: null,
+                token_type: "refresh_token"
+            );
         }
     }
 }

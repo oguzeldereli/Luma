@@ -55,6 +55,7 @@ namespace Luma.Infrastructure.Repositories
 
             var token = RefreshToken.Create(
                 userId: userId,
+                clientId: accessToken.ClientId,
                 accessToken: accessToken,
                 validFor: validFor,
                 tokenHash: hash,

@@ -1,4 +1,5 @@
-﻿using Luma.Core.DTOs.Security;
+﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.DTOs.Security;
 using Luma.Core.Interfaces.Auth;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Models.Auth;
@@ -20,8 +21,8 @@ namespace Luma.Infrastructure.Providers
             _repository = repository;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null)
-            => await _repository.CreateOpaqueAsync(userId, resource, scope);
+        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string resource, string? scope = null)
+            => await _repository.CreateOpaqueAsync(userId, clientId, resource, scope);
 
         public Task<AccessToken?> FindByRawTokenAsync(string rawToken)
             => _repository.VerifyAsync(rawToken);
@@ -44,25 +45,34 @@ namespace Luma.Infrastructure.Providers
             return AccessTokenValidationResult.Valid(token);
         }
 
-        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken)
+        public async Task<TokenIntrospectionResponseDTO> IntrospectTokenAsync(string rawToken)
         {
             var token = await _repository.VerifyAsync(rawToken);
-            if (token is null)
-                return new AccessTokenIntrospectionResponse(false);
+            if (token == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
 
-            return new AccessTokenIntrospectionResponse(
-                Active: !token.IsExpired && !token.IsUsed,
-                Scope: token.Scope,
-                ClientId: token.Aud,
-                UserName: token.User?.Username, 
-                Sub: token.Sub,
-                Aud: token.Aud,
-                Iss: token.Iss,
-                Jti: token.Jti,
-                Exp: token.ExpiresAt,
-                Iat: token.CreatedAt,
-                Nbf: null,
-                TokenType: "access_token"
+            var active = token != null && !token.IsExpired && !token.IsUsed;
+            var user = await _repository.GetUserByTokenIdAsync(token!.Id);
+            if (user == null)
+            {
+                return new TokenIntrospectionResponseDTO(false);
+            }
+
+            return new TokenIntrospectionResponseDTO(
+                active: active,
+                scope: token.Scope,
+                client_id: token.ClientId,
+                username: user?.Username, 
+                sub: token.Sub,
+                aud: token.Aud,
+                iss: token.Iss,
+                jti: token.Jti,
+                exp: token.ExpiresAt,
+                iat: token.CreatedAt,
+                nbf: null,
+                token_type: "access_token"
             );
         }
     }

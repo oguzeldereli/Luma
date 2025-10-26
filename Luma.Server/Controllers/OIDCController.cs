@@ -11,12 +11,6 @@ namespace Luma.Controllers
             return Ok();
         }
 
-        [Route("check-session")]
-        public IActionResult CheckSession()
-        {
-            return Ok();
-        }
-
         [Route("end-session")]
         public IActionResult EndSession()
         {
@@ -29,12 +23,6 @@ namespace Luma.Controllers
             return Ok();
         }
 
-        [Route("device_authorization")]
-        public IActionResult DeviceAuthorization()
-        {
-            return Ok();
-        }
-
         [Route("par")]
         public IActionResult PushedAuthorizationRequest()
         {
@@ -43,12 +31,6 @@ namespace Luma.Controllers
 
         [Route("registration")]
         public IActionResult ClientRegistration()
-        {
-            return Ok();
-        }
-
-        [Route("backchannel_authentication")]
-        public IActionResult BackchannelAuthentication()
         {
             return Ok();
         }

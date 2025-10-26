@@ -12,5 +12,8 @@ namespace Luma.Core.Interfaces.Services
     {
         Task<OAuthServiceResponse<TokenResponseDTO>> IssueTokensFromAuthorizationCode(TokenRequestDTO request);
         Task<OAuthServiceResponse<TokenResponseDTO>> IssueTokensFromRefreshToken(TokenRefreshDTO request);
+
+        Task<OAuthServiceResponse<TokenIntrospectionResponseDTO>> IntrospectToken(TokenIntrospectionRequestDTO request);
+        Task<OAuthServiceResponse<bool>> RevokeToken(TokenRevocationRequestDTO request);
     }
 }

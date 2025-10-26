@@ -36,7 +36,7 @@ namespace Luma.Infrastructure.Repositories
             _options = options;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string resource, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string resource, string? scope = null)
         {
             var tokenOpts = _options.Value.Tokens.AccessToken;
             var validForMinutes = tokenOpts.ValidForMinutes;
@@ -59,6 +59,7 @@ namespace Luma.Infrastructure.Repositories
             // Construct token model
             var token = AccessToken.Create(
                 userId: userId,
+                clientId: clientId,
                 validFor: validFor,
                 tokenHash: hash,
                 tokenHashKey: hashKeyId,
@@ -73,7 +74,7 @@ namespace Luma.Infrastructure.Repositories
             return (token, plain);
         }
 
-        public async Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string jwt)
+        public async Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string clientId, string jwt)
         {
             var defaultKeyId = _tokenHashKeyProvider.DefaultKeyId;
             var tokenOpts = _options.Value.Tokens.AccessToken;
@@ -113,6 +114,7 @@ namespace Luma.Infrastructure.Repositories
 
             AccessToken token = AccessToken.Create(
                 userId: userId,
+                clientId: clientId,
                 validFor: TimeSpan.FromMinutes(validForMinutes),
                 tokenHash: hash,
                 tokenHashKey: hashKeyId,
