@@ -12,5 +12,7 @@ namespace Luma.Core.DTOs.Authorization
         string redirect_uri,
         string client_id,
         string client_secret,
-        string? code_verifier = null);
+        string? code_verifier = null,
+        string? resource = null,
+        string? scope = null);
 }

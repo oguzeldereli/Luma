@@ -21,6 +21,8 @@
       "Clients": [
         {
           "ClientId": "luma-self-hosted",
+          "DefaultResource": "https://localhost",
+          "Resources": [ "https://localhost" ],
           "ClientSecretSHA256_Base64": "Y2UyMGQ3OWRlNjRiYzk2M2ZlMjljYmNmYzNlMDNmZTE2MWIzYTQ1ZDc2YzJmYzNiYmY2NmExZWY3OGViYjdiZA==",
           "DisplayName": "Luma Auth",
           "DefaultRedirectUri": "https://localhost/calback",

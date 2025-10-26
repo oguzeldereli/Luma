@@ -20,8 +20,8 @@ namespace Luma.Infrastructure.Providers
             _repository = repository;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null)
-            => await _repository.CreateOpaqueAsync(userId, clientId, scope);
+        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null)
+            => await _repository.CreateOpaqueAsync(userId, resource, scope);
 
         public Task<AccessToken?> FindByRawTokenAsync(string rawToken)
             => _repository.VerifyAsync(rawToken);
@@ -44,7 +44,7 @@ namespace Luma.Infrastructure.Providers
             return AccessTokenValidationResult.Valid(token);
         }
 
-        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken, string secret)
+        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken)
         {
             var token = await _repository.VerifyAsync(rawToken);
             if (token is null)

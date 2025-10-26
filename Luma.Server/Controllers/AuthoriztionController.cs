@@ -87,29 +87,27 @@ namespace Luma.Controllers
                 {
                     ContentType = "text/html",
                     Content = $"<html><body onload=\"document.forms[0].submit()\">" +
-                  $"<form method='post' action='{authorizeArgs.redirect_uri}'>" +
-                  $"<input type='hidden' name='code' value='{auth.Data}' />" +
-                  $"<input type='hidden' name='state' value='{auth.State}' />" +
-                  "</form></body></html>"
+                                  $"<form method='post' action='{authorizeArgs.redirect_uri}'>" +
+                                  $"<input type='hidden' name='code' value='{auth.Data}' />" +
+                                  $"<input type='hidden' name='state' value='{auth.State}' />" +
+                              "</form></body></html>"
                 };
             }
             else
             {
                 var queryParams = new Dictionary<string, string?>
                 {
-                    ["code"] = auth.Data,
-                    ["state"] = auth.State
+                    { "code", auth.Data },
+                    { "state", auth.State }
                 };
-
-                var fullUri = QueryHelpers.AddQueryString(result.Data, queryParams);
-
-                return Redirect(fullUri);
+                var redirectUrl = QueryHelpers.AddQueryString(authorizeArgs.redirect_uri!, queryParams);
+                return Redirect(redirectUrl);
             }
         }
 
         [HttpPost]
         [Route("token")]
-        public async Task<IActionResult> TokenExchange([FromForm] TokenEndpointDTO request)
+        public async Task<IActionResult> Token([FromForm] TokenEndpointDTO request)
         {
             var clientId = HttpContext.Items["ClientId"] ?? request.client_id;
             var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret;
@@ -130,12 +128,19 @@ namespace Luma.Controllers
                     redirect_uri: request.redirect_uri!,
                     client_id: clientId.ToString()!,
                     client_secret: clientSecret.ToString()!,
-                    code_verifier: request.code_verifier
+                    code_verifier: request.code_verifier,
+                    resource: request.resource,
+                    scope: request.scope
                     );
 
                 var response = await _tokenService.IssueTokensFromAuthorizationCode(tokenRequestDTO);
                 if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
                 {
+                    if (response.StatusCode == 401)
+                    {
+                        Response.Headers["WWW-Authenticate"] = "Basic";
+                    }
+
                     return response.ToErrorResponse();
                 }
                 else
@@ -150,11 +155,17 @@ namespace Luma.Controllers
                     refresh_token: request.refresh_token!,
                     client_id: clientId.ToString()!,
                     client_secret: clientSecret.ToString()!,
+                    resource: request.resource,
                     scope: request.scope
                     );
                 var response = await _tokenService.IssueTokensFromRefreshToken(tokenRefreshDTO);
                 if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
                 {
+                    if (response.StatusCode == 401)
+                    {
+                        Response.Headers["WWW-Authenticate"] = "Basic";
+                    }
+
                     return response.ToErrorResponse();
                 }
                 else
@@ -173,7 +184,7 @@ namespace Luma.Controllers
         }
 
         [Route("mtls/token")]
-        public IActionResult MTLS_TokenExchange()
+        public IActionResult MTLS_TokenExchange([FromForm] TokenEndpointDTO request)
         {
             return Ok();
         }

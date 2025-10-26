@@ -9,6 +9,7 @@ namespace Luma.Core.DTOs.Authorization
     public record AuthorizationCodeStateDTO(
         string clientId,
         string state,
+        string resource,
         string? redirectUri = null,
         string? scope = null,
         string? codeChallenge = null,

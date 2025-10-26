@@ -1,6 +1,7 @@
 ﻿using Luma.Core.DTOs.Authorization;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Services;
+using Luma.Core.Models.Auth;
 using Luma.Core.Models.Services;
 using System;
 using System.Collections.Generic;
@@ -46,9 +47,17 @@ namespace Luma.Core.Services.Authorization
             if (!_clientRepository.ClientExists(request.client_id))
             {
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
-                    "invalid_client",
+                    "invalid_client",   
                     "The client_id provided is invalid.",
-                    400, null, null, null, null);
+                    401, null, null, null, null);
+            }
+
+            if (!string.IsNullOrEmpty(request.resource) && !_clientRepository.ClientHasResource(request.client_id, request.resource))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client is not authorized to access the specified resource.",
+                    401, null, null, null, null);
             }
 
             if (!_clientRepository.ClientAllowsGrantType(request.client_id, request.grant_type))
@@ -56,6 +65,14 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "unauthorized_client",
                     "The client is not authorized to use this grant type.",
+                    400, null, null, null, null);
+            }
+
+            if (!string.IsNullOrEmpty(request.scope) && !_clientRepository.ClientHasScope(request.client_id, request.scope.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_scope",
+                    "The client is not authorized for one or more of the requested scopes.",
                     400, null, null, null, null);
             }
 
@@ -117,6 +134,28 @@ namespace Luma.Core.Services.Authorization
                     400, null, null, null, null);
             }
 
+            if (!string.IsNullOrEmpty(request.resource) && authCode.Resource != request.resource)
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_target",
+                    "The resource does not match the one used in the authorization request.",
+                    400, null, null, null, null);
+            }
+
+            if (!string.IsNullOrEmpty(request.scope))
+            {
+                var requestedScopes = request.scope.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var codeScopes = authCode.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (!requestedScopes.All(rs => codeScopes.Contains(rs)))
+                {
+                    return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                        "invalid_scope",
+                        "The requested scope exceeds the scope granted by the authorization code.",
+                        400, null, null, null, null);
+                }
+            }
+
+
             if (authCode.CodeChallengeMethod != null)
             {
                 if (string.IsNullOrWhiteSpace(request.code_verifier))
@@ -145,7 +184,11 @@ namespace Luma.Core.Services.Authorization
                 }
             }
 
-            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(authCode.UserId, authCode.ClientId, authCode.Scope);
+
+            var resource = request.resource ?? authCode.Resource;
+            var scope = request.scope ?? authCode.Scope;
+
+            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(authCode.UserId, resource, scope);
             var (rtoken, rplain) = await _refreshTokenProvider.CreateAsync(atoken.Id);
             var iplain = await _idTokenProvider.CreateAsync(atoken.Id, authCode.Nonce);
             var tokenResponse = new TokenResponseDTO(
@@ -175,6 +218,14 @@ namespace Luma.Core.Services.Authorization
                 return OAuthServiceResponse<TokenResponseDTO>.Failure(
                     "invalid_client",
                     "The client_id provided is invalid.",
+                    401, null, null, null, null);
+            }
+
+            if (!string.IsNullOrEmpty(request.resource) && !_clientRepository.ClientHasResource(request.client_id, request.resource))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_target",
+                    "The client is not authorized to access the specified resource.",
                     400, null, null, null, null);
             }
 
@@ -202,6 +253,14 @@ namespace Luma.Core.Services.Authorization
                     400, null, null, null, null);
             }
 
+            if (!string.IsNullOrEmpty(request.scope) && !_clientRepository.ClientHasScope(request.client_id, request.scope.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_scope",
+                    "The client is not authorized for one or more of the requested scopes.",
+                    400, null, null, null, null);
+            }
+
             var rtokenResult = await _refreshTokenProvider.ValidateAndUseTokenAsync(request.refresh_token, request.client_id);
             if (!rtokenResult.IsValid || rtokenResult.Token == null)
             {
@@ -211,9 +270,32 @@ namespace Luma.Core.Services.Authorization
                     400, null, null, null, null);
             }
 
-            var refreshToken = rtokenResult.Token;
+            if (!string.IsNullOrEmpty(request.resource) && request.resource != rtokenResult.Token.Aud)
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_target",
+                    "The resource does not match the one associated with the original token.",
+                    400, null, null, null, null);
+            }
 
-            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(refreshToken.UserId, refreshToken.Aud, refreshToken.Scope);
+            if (!string.IsNullOrEmpty(request.scope))
+            {
+                var requestedScopes = request.scope.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var tokenScopes = rtokenResult.Token.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (!requestedScopes.All(rs => tokenScopes.Contains(rs)))
+                {
+                    return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                        "invalid_scope",
+                        "The requested scope exceeds the scope granted by the original token.",
+                        400, null, null, null, null);
+                }
+            }
+
+            var refreshToken = rtokenResult.Token;
+            var resource = request.resource ?? refreshToken.Aud;
+            var scope = request.scope ?? refreshToken.Scope;
+
+            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(refreshToken.UserId, resource, scope);
             var (newRToken, newRPlain) = await _refreshTokenProvider.CreateAsync(atoken.Id);
             var iplain = await _idTokenProvider.CreateAsync(atoken.Id);
 

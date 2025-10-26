@@ -53,6 +53,11 @@ namespace Luma.Core.Services.Authorization
             if (!_clientRepository.ClientHasRedirectUri(clientId, redirectUri))
                 return OAuthServiceResponse<string>.Failure("invalid_request", "The specified redirect_uri is not registered for the client.", 400, null, state, null, request.response_mode ?? "query");
 
+            var resource = request.resource ?? client.DefaultResource;
+
+            if (!_clientRepository.ClientHasResource(clientId, resource))
+                return OAuthServiceResponse<string>.Failure("invalid_request", "The specified resource is not allowed for the client.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
+
             if (!_clientRepository.ClientAllowsGrantType(clientId, "authorization_code"))
                 return OAuthServiceResponse<string>.Failure("unauthorized_client", "The client is not authorized to use the authorization_code grant type.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
 
@@ -127,6 +132,7 @@ namespace Luma.Core.Services.Authorization
                     state: state,
                     clientId: clientId,
                     redirectUri: redirectUri,
+                    resource: resource,
                     scope: scope,
                     codeChallengeMethod: codeChallengeMethod,
                     codeChallenge: codeChallenge,
@@ -220,6 +226,7 @@ namespace Luma.Core.Services.Authorization
             {
                 Code = code,
                 ClientId = existingStateResult.clientId,
+                Resource = existingStateResult.resource,
                 RedirectUri = existingStateResult.redirectUri ?? client.DefaultRedirectUri,
                 CodeChallenge = existingStateResult.codeChallenge,
                 CodeChallengeMethod = existingStateResult.codeChallengeMethod,

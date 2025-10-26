@@ -14,5 +14,6 @@ namespace Luma.Core.DTOs.Authorization
         string? client_secret = null,
         string? code_verifier = null,
         string? refresh_token = null,
+        string? resource = null,
         string? scope = null);
 }

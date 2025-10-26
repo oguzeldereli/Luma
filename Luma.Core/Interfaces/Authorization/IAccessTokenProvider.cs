@@ -10,9 +10,9 @@ namespace Luma.Core.Interfaces.Authorization
 {
     public interface IAccessTokenProvider
     {
-        Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null);
+        Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null);
         Task<AccessToken?> FindByRawTokenAsync(string rawToken);
         Task<AccessTokenValidationResult> ValidateTokenAsync(string rawToken, long userId);
-        Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken, string secret);
+        Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken);
     }
 }

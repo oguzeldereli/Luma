@@ -24,6 +24,8 @@ namespace Luma.Infrastructure.Repositories
             _clients = _options.Value.OAuth.Clients?.Select(c => new Client
             {
                 ClientId = c.ClientId,
+                DefaultResource = c.DefaultResource,
+                Resources = c.Resources ?? new List<string>(),
                 ClientSecretSHA256_Base64 = c.ClientSecretSHA256_Base64,
                 DisplayName = c.DisplayName,
                 DefaultRedirectUri = c.DefaultRedirectUri,
@@ -50,6 +52,14 @@ namespace Luma.Infrastructure.Repositories
             if (client == null)
                 return false;
             return client.AllowedGrantTypes.Contains(grantType);
+        }
+
+        public bool ClientHasResource(string clientId, string resource)
+        {
+            var client = _clients.FirstOrDefault(c => c.ClientId == clientId);
+            if (client == null)
+                return false;
+            return client.Resources.Contains(resource);
         }
 
         public bool ClientExists(string clientId)

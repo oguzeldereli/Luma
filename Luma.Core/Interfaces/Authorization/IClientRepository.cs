@@ -14,6 +14,7 @@ namespace Luma.Core.Interfaces.Authorization
         List<Client> GetAllClients();
         Client? FindClientById(string clientId);
         bool ClientExists(string clientId);
+        bool ClientHasResource(string clientId, string resource);
         bool ClientHasRedirectUri(string clientId, string redirectUri);
         bool ClientAllowsGrantType(string clientId, string grantType);
         bool ClientHasScope(string clientId, params string[] scopes);

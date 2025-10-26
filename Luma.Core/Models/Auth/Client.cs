@@ -9,6 +9,8 @@ namespace Luma.Core.Models.Auth
     public class Client
     {
         public string ClientId { get; set; } = default!;
+        public string DefaultResource { get; set; } = default!;
+        public List<string> Resources { get; set; } = default!;
         public string ClientSecretSHA256_Base64 { get; set; } = default!;
         public string DisplayName { get; set; } = default!;
         public string DefaultRedirectUri { get; set; } = default!;

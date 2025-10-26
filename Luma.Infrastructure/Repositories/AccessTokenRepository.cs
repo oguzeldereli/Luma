@@ -36,7 +36,7 @@ namespace Luma.Infrastructure.Repositories
             _options = options;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string resource, string? scope = null)
         {
             var tokenOpts = _options.Value.Tokens.AccessToken;
             var validForMinutes = tokenOpts.ValidForMinutes;
@@ -64,7 +64,7 @@ namespace Luma.Infrastructure.Repositories
                 tokenHashKey: hashKeyId,
                 scope: scope ?? tokenOpts.DefaultScope,
                 sub: userId.ToString(),
-                aud: clientId,
+                aud: resource,
                 iss: tokenOpts.Issuer
             );
 

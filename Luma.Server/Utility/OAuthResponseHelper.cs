@@ -65,7 +65,9 @@ namespace Luma.Server.Utility
 
             var statusCode = result.StatusCode ?? StatusCodes.Status400BadRequest;
 
-            return new ObjectResult(errorResponse) { StatusCode = statusCode };
+            var response = new ObjectResult(errorResponse) { StatusCode = statusCode };
+
+            return response;
         }
     }
 }

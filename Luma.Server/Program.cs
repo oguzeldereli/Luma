@@ -39,6 +39,17 @@ builder.Configuration
 builder.Services.Configure<LumaOptions>(builder.Configuration.GetSection("Luma"));
 var lumaConfig = builder.Configuration.GetSection("Luma").Get<LumaOptions>()!;
 
+// MTLS Configuration
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureHttpsDefaults(httpsOptions =>
+    {
+        httpsOptions.ClientCertificateMode =
+            Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
+        httpsOptions.CheckCertificateRevocation = false; // optional
+    });
+});
+
 // ---------------------------
 // Database
 // ---------------------------

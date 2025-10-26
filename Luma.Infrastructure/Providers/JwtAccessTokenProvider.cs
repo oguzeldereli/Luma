@@ -32,7 +32,7 @@ namespace Luma.Infrastructure.Providers
             _opts = options.Value.Tokens.AccessToken;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string resource, string? scope = null)
         {
             // Retrieve the user (for ExternalId)
             var user = await _repository.GetUserByTokenIdAsync(userId);
@@ -52,13 +52,13 @@ namespace Luma.Infrastructure.Providers
                 new(JwtRegisteredClaimNames.Sub, sub),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(JwtRegisteredClaimNames.Iss, _opts.Issuer),
-                new(JwtRegisteredClaimNames.Aud, clientId),
+                new(JwtRegisteredClaimNames.Aud, resource),
                 new("scope", scp)
             };
 
             var jwtToken = new JwtSecurityToken(
                 issuer: _opts.Issuer,
-                audience: clientId,
+                audience: resource,
                 claims: claims,
                 notBefore: now,
                 expires: expires,
@@ -129,7 +129,7 @@ namespace Luma.Infrastructure.Providers
             }
         }
 
-        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken, string secret)
+        public async Task<AccessTokenIntrospectionResponse> IntrospectTokenAsync(string rawToken)
         {
             var handler = new JwtSecurityTokenHandler();
 
