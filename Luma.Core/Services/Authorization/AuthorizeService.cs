@@ -226,7 +226,7 @@ namespace Luma.Core.Services.Authorization
             {
                 Code = code,
                 ClientId = existingStateResult.clientId,
-                Resource = existingStateResult.resource,
+                Resource = existingStateResult.resource ?? client.DefaultResource,
                 RedirectUri = existingStateResult.redirectUri ?? client.DefaultRedirectUri,
                 CodeChallenge = existingStateResult.codeChallenge,
                 CodeChallengeMethod = existingStateResult.codeChallengeMethod,
