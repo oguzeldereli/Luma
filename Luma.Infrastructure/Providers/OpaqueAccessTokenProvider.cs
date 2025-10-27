@@ -21,8 +21,11 @@ namespace Luma.Infrastructure.Providers
             _repository = repository;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string resource, string? scope = null)
-            => await _repository.CreateOpaqueAsync(userId, clientId, resource, scope);
+        public async Task<(AccessToken token, string plain)> CreateForUserAsync(long userId, string clientId, string resource, string? scope = null)
+            => await _repository.CreateOpaqueAsync(clientId, resource, userId, scope);
+
+        public async Task<(AccessToken token, string plain)> CreateForClientAsync(string clientId, string resource, string? scope = null)
+            => await _repository.CreateOpaqueAsync(clientId, resource, scope: scope);
 
         public Task<AccessToken?> FindByRawTokenAsync(string rawToken)
             => _repository.VerifyAsync(rawToken);

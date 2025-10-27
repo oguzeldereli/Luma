@@ -15,8 +15,8 @@ namespace Luma.Models.Auth
         public DateTime? UsedAt { get; protected set; }
         public string ClientId { get; protected set; } = default!;
 
-        public long UserId { get; protected set; }
-        public User User { get; protected set; } = default!;
+        public long? UserId { get; protected set; }
+        public User? User { get; protected set; } = default!;
 
         public bool IsExpired => DateTime.UtcNow > ExpiresAt;
 

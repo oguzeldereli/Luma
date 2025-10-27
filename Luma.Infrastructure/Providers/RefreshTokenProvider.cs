@@ -34,7 +34,12 @@ namespace Luma.Infrastructure.Providers
                 throw new InvalidOperationException($"Access token with ID {accessTokenId} not found.");
             }
 
-            return await _refreshTokenRepository.CreateAsync(token.UserId, accessTokenId);
+            if (token.UserId == null)
+            {
+                throw new InvalidOperationException("Cannot create refresh token for client credentials access token.");
+            }
+
+            return await _refreshTokenRepository.CreateAsync(token.UserId.Value, accessTokenId);
         }
 
         public async Task<RefreshToken?> FindByRawTokenAsync(string rawToken)

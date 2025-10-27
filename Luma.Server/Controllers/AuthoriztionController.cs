@@ -173,6 +173,29 @@ namespace Luma.Controllers
                     return Ok(response.Data);
                 }
             }
+            else if (request.grant_type == "client_credentials")
+            {
+                TokenClientCredentialsDTO tokenClientCredentialsDTO = new TokenClientCredentialsDTO(
+                    grant_type: request.grant_type,
+                    client_id: clientId.ToString()!,
+                    client_secret: clientSecret.ToString()!,
+                    resource: request.resource!,
+                    scope: request.scope
+                    );
+                var response = await _tokenService.IssueTokensFromClientCredentials(tokenClientCredentialsDTO);
+                if (!string.IsNullOrWhiteSpace(response.ErrorCode) || response.Data == null)
+                {
+                    if (response.StatusCode == 401)
+                    {
+                        Response.Headers["WWW-Authenticate"] = "Basic";
+                    }
+                    return response.ToErrorResponse();
+                }
+                else
+                {
+                    return Ok(response.Data);
+                }
+            }
             else
             {
                 return BadRequest(new

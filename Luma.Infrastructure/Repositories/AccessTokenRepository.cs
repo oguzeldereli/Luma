@@ -36,7 +36,7 @@ namespace Luma.Infrastructure.Repositories
             _options = options;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string resource, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateOpaqueAsync(string clientId, string resource, long? userId = null, string? scope = null)
         {
             var tokenOpts = _options.Value.Tokens.AccessToken;
             var validForMinutes = tokenOpts.ValidForMinutes;
@@ -50,31 +50,50 @@ namespace Luma.Infrastructure.Repositories
             // Generate opaque token (random)
             (string plain, string hash, string hashKeyId) = _tokenGenerator.GenerateOpaqueToken(64, keyId);
 
-            var userExternalId = await _context.Users
-                .AsNoTracking()
-                .Where(u => u.Id == userId)
-                .Select(u => u.ExternalId)
-                .FirstOrDefaultAsync();
+            if (userId.HasValue)
+            {
+                var userExternalId = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => u.ExternalId)
+                    .FirstOrDefaultAsync();
 
-            // Construct token model
-            var token = AccessToken.Create(
-                userId: userId,
-                clientId: clientId,
-                validFor: validFor,
-                tokenHash: hash,
-                tokenHashKey: hashKeyId,
-                scope: scope ?? tokenOpts.DefaultScope,
-                sub: userId.ToString(),
-                aud: resource,
-                iss: tokenOpts.Issuer
-            );
+                var token = AccessToken.Create(
+                    userId: userId.Value,
+                    clientId: clientId,
+                    validFor: validFor,
+                    tokenHash: hash,
+                    tokenHashKey: hashKeyId,
+                    scope: scope ?? tokenOpts.DefaultScope,
+                    sub: userId.Value.ToString(),
+                    aud: resource,
+                    iss: tokenOpts.Issuer
+                );
 
-            _context.AccessTokens.Add(token);
-            await _context.SaveChangesAsync();
-            return (token, plain);
+                _context.AccessTokens.Add(token);
+                await _context.SaveChangesAsync();
+                return (token, plain);
+            }
+            else
+            {
+                var token = AccessToken.Create(
+                    clientId: clientId,
+                    validFor: validFor,
+                    tokenHash: hash,
+                    tokenHashKey: hashKeyId,
+                    scope: scope ?? tokenOpts.DefaultScope,
+                    sub: clientId.ToString(),
+                    aud: resource,
+                    iss: tokenOpts.Issuer
+                );
+
+                _context.AccessTokens.Add(token);
+                await _context.SaveChangesAsync();
+                return (token, plain);
+            }
         }
 
-        public async Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string clientId, string jwt)
+        public async Task<(AccessToken token, string plain)> CreateJwtAsync(string clientId, string jwt, long? userId = null)
         {
             var defaultKeyId = _tokenHashKeyProvider.DefaultKeyId;
             var tokenOpts = _options.Value.Tokens.AccessToken;
@@ -85,49 +104,89 @@ namespace Luma.Infrastructure.Repositories
             // extract sub, aud, and iss from jwt
             var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(jwt);
-            
-            var userExternalId = await _context.Users
-                .AsNoTracking()
-                .Where(u => u.Id == userId)
-                .Select(u => new { u.ExternalId })
-                .FirstOrDefaultAsync();
-            if (userExternalId == null)
-                throw new ArgumentException("User not found.", nameof(userId));
 
-            var sub = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-            if (sub == null)
+            if (userId.HasValue)
             {
-                sub = userExternalId.ExternalId.ToString();
+                var userExternalId = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.ExternalId })
+                    .FirstOrDefaultAsync();
+                if (userExternalId == null)
+                    throw new ArgumentException("User not found.", nameof(userId));
+
+                var sub = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                if (sub == null)
+                {
+                    sub = userExternalId.ExternalId.ToString();
+                }
+                else
+                {
+                    if (userExternalId.ExternalId.ToString() != sub)
+                        throw new ArgumentException("The 'sub' claim in the JWT does not match the user's external ID.");
+                }
+
+                var aud = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Aud)?.Value ?? "unknown";
+                var iss = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iss)?.Value ?? tokenOpts.Issuer;
+                var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value ?? Guid.NewGuid().ToString();
+                var scope = jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value ?? tokenOpts.DefaultScope;
+
+                var (plain, hash, hashKeyId) = _tokenGenerator.GenerateJwtTokenHash(jwt, defaultKeyId);
+
+                AccessToken token = AccessToken.Create(
+                    userId: userId.Value,
+                    clientId: clientId,
+                    validFor: TimeSpan.FromMinutes(validForMinutes),
+                    tokenHash: hash,
+                    tokenHashKey: hashKeyId,
+                    scope: scope,
+                    sub: sub,
+                    aud: aud,
+                    iss: iss,
+                    jti: jti
+                );
+
+                _context.AccessTokens.Add(token);
+                await _context.SaveChangesAsync();
+                return (token, plain);
             }
             else
             {
-                if (userExternalId.ExternalId.ToString() != sub)
-                    throw new ArgumentException("The 'sub' claim in the JWT does not match the user's external ID.");
+
+                var sub = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+                if (sub == null)
+                {
+                    sub = clientId;
+                }
+                else
+                {
+                    if (clientId.ToString() != sub)
+                        throw new ArgumentException("The 'sub' claim in the JWT does not match the client's ID.");
+                }
+
+                var aud = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Aud)?.Value ?? "unknown";
+                var iss = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iss)?.Value ?? tokenOpts.Issuer;
+                var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value ?? Guid.NewGuid().ToString();
+                var scope = jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value ?? tokenOpts.DefaultScope;
+
+                var (plain, hash, hashKeyId) = _tokenGenerator.GenerateJwtTokenHash(jwt, defaultKeyId);
+
+                AccessToken token = AccessToken.Create(
+                    clientId: clientId,
+                    validFor: TimeSpan.FromMinutes(validForMinutes),
+                    tokenHash: hash,
+                    tokenHashKey: hashKeyId,
+                    scope: scope,
+                    sub: clientId,
+                    aud: aud,
+                    iss: iss,
+                    jti: jti
+                );
+
+                _context.AccessTokens.Add(token);
+                await _context.SaveChangesAsync();
+                return (token, plain);
             }
-
-            var aud = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Aud)?.Value ?? "unknown";
-            var iss = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iss)?.Value ?? tokenOpts.Issuer;
-            var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value ?? Guid.NewGuid().ToString();
-            var scope = jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value ?? tokenOpts.DefaultScope;
-            
-            var (plain, hash, hashKeyId) = _tokenGenerator.GenerateJwtTokenHash(jwt, defaultKeyId);
-
-            AccessToken token = AccessToken.Create(
-                userId: userId,
-                clientId: clientId,
-                validFor: TimeSpan.FromMinutes(validForMinutes),
-                tokenHash: hash,
-                tokenHashKey: hashKeyId,
-                scope: scope,
-                sub: sub,
-                aud: aud,
-                iss: iss,
-                jti: jti
-            );
-
-            _context.AccessTokens.Add(token);
-            await _context.SaveChangesAsync();
-            return (token, plain);
         }
 
         public async Task<User?> GetUserByTokenIdAsync(long tokenId)

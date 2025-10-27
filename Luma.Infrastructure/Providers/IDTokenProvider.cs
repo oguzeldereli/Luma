@@ -38,7 +38,9 @@ namespace Luma.Infrastructure.Providers
             var accessToken = await _accessTokenRepository.GetByIdAsync(accessTokenId);
             if (accessToken is null)
                 throw new ArgumentException("Access token not found.", nameof(accessTokenId));
-            var user = await _userRepository.GetByIdAsync(accessToken.UserId);
+            if (accessToken.UserId is null)
+                throw new ArgumentException("Access token is not associated with a user.", nameof(accessToken.UserId));
+            var user = await _userRepository.GetByIdAsync(accessToken.UserId.Value);
             if (user is null)
                 throw new ArgumentException("User not found.", nameof(accessToken.UserId));
 
@@ -46,7 +48,7 @@ namespace Luma.Infrastructure.Providers
             {
                 new("sub", user.ExternalId.ToString()),
                 new("name", user.GetFullName()),
-                new( "given_name", user.FirstName ?? string.Empty),
+                new("given_name", user.FirstName ?? string.Empty),
                 new("family_name", user.LastName ?? string.Empty),
                 new("middle_name", user.MiddleName ?? string.Empty),
                 new("nickname", user.Nickname ?? string.Empty),

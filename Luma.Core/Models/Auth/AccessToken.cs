@@ -49,6 +49,32 @@ namespace Luma.Core.Models.Auth
             };
         }
 
+        public static AccessToken Create(
+            string clientId,
+            TimeSpan validFor,
+            string tokenHash,
+            string tokenHashKey,
+            string scope,
+            string sub,
+            string aud,
+            string iss,
+            string? jti = null)
+        {
+            return new AccessToken
+            {
+                UserId = null,
+                ClientId = clientId,
+                ExpiresAt = DateTime.UtcNow.Add(validFor),
+                TokenHash = tokenHash,
+                TokenHashKeyId = tokenHashKey,
+                Scope = scope,
+                Sub = sub,
+                Aud = aud,
+                Iss = iss,
+                Jti = jti ?? Guid.NewGuid().ToString()
+            };
+        }
+
         public void Revoke(string? reason = null)
         {
             if (IsRevoked)

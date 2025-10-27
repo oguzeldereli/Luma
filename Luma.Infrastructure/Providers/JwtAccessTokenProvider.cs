@@ -33,7 +33,7 @@ namespace Luma.Infrastructure.Providers
             _opts = options.Value.Tokens.AccessToken;
         }
 
-        public async Task<(AccessToken token, string plain)> CreateAsync(long userId, string clientId, string resource, string? scope = null)
+        public async Task<(AccessToken token, string plain)> CreateForUserAsync(long userId, string clientId, string resource, string? scope = null)
         {
             // Retrieve the user (for ExternalId)
             var user = await _repository.GetUserByTokenIdAsync(userId);
@@ -71,7 +71,37 @@ namespace Luma.Infrastructure.Providers
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.WriteToken(jwtToken);
 
-            return await _repository.CreateJwtAsync(userId, clientId, jwt);
+            return await _repository.CreateJwtAsync(clientId, jwt, userId);
+        }
+
+        public async Task<(AccessToken token, string plain)> CreateForClientAsync(string clientId, string resource, string? scope = null)
+        {
+            var sub = clientId;
+            var scp = scope ?? _opts.DefaultScope;
+            // Create JWT
+            var creds = _jwtSigningKeyProvider.GetSigningCredentials();
+            var now = DateTime.UtcNow;
+            var expires = now.AddMinutes(_opts.ValidForMinutes);
+            var claims = new List<Claim>
+            {
+                new(JwtRegisteredClaimNames.Sub, sub),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new(JwtRegisteredClaimNames.Iss, _opts.Issuer),
+                new(JwtRegisteredClaimNames.Aud, resource),
+                new("scope", scp)
+            };
+            var jwtToken = new JwtSecurityToken(
+                issuer: _opts.Issuer,
+                audience: resource,
+                claims: claims,
+                notBefore: now,
+                expires: expires,
+                signingCredentials: creds
+            );
+            jwtToken.Header["kid"] = _jwtSigningKeyProvider.DefaultKeyId;
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.WriteToken(jwtToken);
+            return await _repository.CreateJwtAsync(clientId, jwt);
         }
 
         public async Task<AccessToken?> FindByRawTokenAsync(string rawToken)

@@ -195,7 +195,7 @@ namespace Luma.Core.Services.Authorization
             var resource = request.resource ?? authCode.Resource;
             var scope = request.scope ?? authCode.Scope;
 
-            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(authCode.UserId, resource, scope);
+            var (atoken, aplain) = await _accessTokenProvider.CreateForUserAsync(authCode.UserId, authCode.ClientId, resource, scope);
             var (rtoken, rplain) = await _refreshTokenProvider.CreateAsync(atoken.Id);
             var iplain = await _idTokenProvider.CreateAsync(atoken.Id, authCode.Nonce);
             var tokenResponse = new TokenResponseDTO(
@@ -302,7 +302,15 @@ namespace Luma.Core.Services.Authorization
             var resource = request.resource ?? refreshToken.Aud;
             var scope = request.scope ?? refreshToken.Scope;
 
-            var (atoken, aplain) = await _accessTokenProvider.CreateAsync(refreshToken.UserId, resource, scope);
+            if (refreshToken.UserId == null)
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_grant",
+                    "The refresh token is not associated with a user.",
+                    400, null, null, null, null);
+            }
+
+            var (atoken, aplain) = await _accessTokenProvider.CreateForUserAsync(refreshToken.UserId.Value, refreshToken.ClientId, resource, scope);
             var (newRToken, newRPlain) = await _refreshTokenProvider.CreateAsync(atoken.Id);
             var iplain = await _idTokenProvider.CreateAsync(atoken.Id);
 
@@ -317,6 +325,104 @@ namespace Luma.Core.Services.Authorization
 
             return OAuthServiceResponse<TokenResponseDTO>.Success(tokenResponse);
         }
+
+        public async Task<OAuthServiceResponse<TokenResponseDTO>> IssueTokensFromClientCredentials(TokenClientCredentialsDTO request)
+        {
+            if (request.grant_type != "client_credentials")
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "unsupported_grant_type",
+                    "The grant_type provided is not supported.",
+                    400, null, null, null, null);
+            }
+
+            if (string.IsNullOrWhiteSpace(request.client_id) || !_clientRepository.ClientExists(request.client_id))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client_id provided is invalid.",
+                    401, null, null, null, null);
+            }
+
+            if (!_clientRepository.ClientIsConfidential(request.client_id))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client must be confidential to use this grant type.",
+                    401, null, null, null, null);
+            }
+
+            if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client authentication failed.",
+                    401, null, null, null, null);
+            }
+
+            if (!_clientRepository.ClientAllowsGrantType(request.client_id, request.grant_type))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "unauthorized_client",
+                    "The client is not authorized to use this grant type.",
+                    400, null, null, null, null);
+            }
+
+            var client = _clientRepository.FindClientById(request.client_id);
+            if (client == null)
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_client",
+                    "The client_id provided is invalid.",
+                    401, null, null, null, null);
+            }
+
+            var resource = request.resource ?? client.DefaultResource;
+
+            if (string.IsNullOrWhiteSpace(resource))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_request",
+                    "The resource is required for the client_credentials grant.",
+                    400, null, null, null, null);
+            }
+
+            if (!_clientRepository.ClientHasResource(request.client_id, resource))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_target",
+                    "The client is not authorized to access the specified resource.",
+                    400, null, null, null, null);
+            }
+
+            if (!string.IsNullOrEmpty(request.scope) &&
+                !_clientRepository.ClientHasScope(request.client_id, request.scope.Split(' ', StringSplitOptions.RemoveEmptyEntries)))
+            {
+                return OAuthServiceResponse<TokenResponseDTO>.Failure(
+                    "invalid_scope",
+                    "The client is not authorized for one or more of the requested scopes.",
+                    400, null, null, null, null);
+            }
+
+            // Issue access token for the client (no refresh_token or id_token for client_credentials per spec)
+            var (atoken, aplain) = await _accessTokenProvider.CreateForClientAsync(
+                request.client_id,
+                request.resource!,
+                request.scope
+            );
+
+            var tokenResponse = new TokenResponseDTO(
+                access_token: aplain,
+                token_type: "Bearer",
+                expires_in: (int)(atoken.ExpiresAt - atoken.CreatedAt).TotalSeconds,
+                refresh_token: null,
+                scope: atoken.Scope,
+                id_token: null
+            );
+
+            return OAuthServiceResponse<TokenResponseDTO>.Success(tokenResponse);
+        }
+
 
         public async Task<OAuthServiceResponse<TokenIntrospectionResponseDTO>> IntrospectToken(TokenIntrospectionRequestDTO request)
         {

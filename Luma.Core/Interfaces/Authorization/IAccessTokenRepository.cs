@@ -11,8 +11,8 @@ namespace Luma.Core.Interfaces.Authorization
 {
     public interface IAccessTokenRepository : ITokenRepository<AccessToken>
     {
-        Task<(AccessToken token, string plain)> CreateOpaqueAsync(long userId, string clientId, string resource, string? scope = null);
-        Task<(AccessToken token, string plain)> CreateJwtAsync(long userId, string clientId, string jwt);
+        Task<(AccessToken token, string plain)> CreateOpaqueAsync(string clientId, string resource, long? userId = null, string? scope = null);
+        Task<(AccessToken token, string plain)> CreateJwtAsync(string clientId, string jwt, long? userId = null);
         Task<User?> GetUserByTokenIdAsync(long tokenId);
 
         Task<bool> RevokeByIdAsync(long tokenId, string? reason = null);
