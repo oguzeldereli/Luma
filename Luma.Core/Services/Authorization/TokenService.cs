@@ -460,7 +460,53 @@ namespace Luma.Core.Services.Authorization
 
         public async Task<OAuthServiceResponse<bool>> RevokeToken(TokenRevocationRequestDTO request)
         {
-            throw new NotImplementedException();
+            var client = _clientRepository.FindClientById(request.client_id);
+            if (client == null)
+            {
+                return OAuthServiceResponse<bool>.Failure(
+                    "invalid_client",
+                    "The client_id provided is invalid.",
+                    200, null, null, null, null);
+            }
+
+            if (!_clientRepository.ClientIsConfidential(request.client_id))
+            {
+                return OAuthServiceResponse<bool>.Failure(
+                    "invalid_client",
+                    "The client must be confidential to use this endpoint.",
+                    200, null, null, null, null);
+            }
+
+            if (!_clientRepository.AuthenticateClient(request.client_id, request.client_secret))
+            {
+                return OAuthServiceResponse<bool>.Failure(
+                    "invalid_client",
+                    "The client authentication failed.",
+                    200, null, null, null, null);
+            }
+
+            var aToken = await _accessTokenProvider.FindByRawTokenAsync(request.token);
+            var rToken = await _refreshTokenProvider.FindByRawTokenAsync(request.token);
+
+            if (aToken != null && aToken.ClientId != request.client_id)
+            {
+                return OAuthServiceResponse<bool>.Failure(
+                    "invalid_token",
+                    "The access token was not issued to the authenticated client.",
+                    200, null, null, null, null);
+            }
+
+            if (rToken != null && rToken.ClientId != request.client_id)
+            {
+                return OAuthServiceResponse<bool>.Failure(
+                    "invalid_token",
+                    "The refresh token was not issued to the authenticated client.",
+                    200, null, null, null, null);
+            }
+
+            var atokenRevoked = await _accessTokenProvider.RevokeTokenAsync(request.token, request.client_id);
+            var rtokenRevoked = await _refreshTokenProvider.RevokeTokenAsync(request.token, request.client_id);
+            return OAuthServiceResponse<bool>.Success(atokenRevoked || rtokenRevoked);
         }
     }
 }

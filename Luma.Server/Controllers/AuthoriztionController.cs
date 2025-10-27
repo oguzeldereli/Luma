@@ -116,7 +116,7 @@ namespace Luma.Controllers
                 return BadRequest(new
                 {
                     error = "invalid_client",
-                    error_description = "Incomplete authentication data."
+                    error_description = "Incomplete authentication data.",
                 });
             }
 

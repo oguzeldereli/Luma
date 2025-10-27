@@ -78,5 +78,16 @@ namespace Luma.Infrastructure.Providers
                 token_type: "access_token"
             );
         }
+
+        public async Task<bool> RevokeTokenAsync(string rawToken, string? reason = null)
+        {
+            var token = await _repository.VerifyAsync(rawToken);
+            if (token == null || token.IsExpired || token.IsUsed)
+            {
+                return false;
+            }
+            await _repository.RevokeByIdAsync(token.Id, reason);
+            return true;
+        }
     }
 }

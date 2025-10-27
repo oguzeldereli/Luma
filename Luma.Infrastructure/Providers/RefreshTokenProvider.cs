@@ -104,5 +104,16 @@ namespace Luma.Infrastructure.Providers
                 token_type: "refresh_token"
             );
         }
+
+        public async Task<bool> RevokeTokenAsync(string rawToken, string? reason = null)
+        {
+            var token = await _refreshTokenRepository.VerifyAsync(rawToken);
+            if (token == null || token.IsRevoked)
+            {
+                return false;
+            }
+            await _refreshTokenRepository.RevokeByIdAsync(token.Id, reason);
+            return true;
+        }
     }
 }
