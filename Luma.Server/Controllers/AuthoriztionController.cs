@@ -266,10 +266,34 @@ namespace Luma.Controllers
             return Ok(result.Data);
         }
 
+        [HttpGet]
+        [HttpPost]
         [Route("userinfo")]
-        public IActionResult UserInfo()
+        public async Task<IActionResult> UserInfo()
         {
-            return Ok();
+            var bearerToken = HttpContext.Items["BearerToken"]?.ToString();
+            if (string.IsNullOrWhiteSpace(bearerToken))
+            {
+                Response.Headers["WWW-Authenticate"] = "Bearer realm=\"Luma\", error=\"invalid_token\", error_description=\"The access token is missing or invalid.\"";
+                return Unauthorized(new
+                {
+                    error = "invalid_token",
+                    error_description = "The access token is missing or invalid."
+                });
+            }
+
+            var userInfo = await _tokenService.GetUserInfoAsync(bearerToken);
+            if (userInfo.Data == null)
+            {
+                Response.Headers["WWW-Authenticate"] = "Bearer realm=\"Luma\", error=\"invalid_token\", error_description=\"The access token is missing or invalid.\"";
+                return Unauthorized(new
+                {
+                    error = "invalid_token",
+                    error_description = "The access token is missing or invalid."
+                });
+            }
+
+            return Ok(userInfo.Data);
         }
 
         [Route(".well-known/openid-configuration")]

@@ -1,8 +1,10 @@
 ﻿using Luma.Core.DTOs.Authorization;
+using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Services;
 using Luma.Core.Models.Auth;
 using Luma.Core.Models.Services;
+using Luma.Models.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,13 +20,15 @@ namespace Luma.Core.Services.Authorization
         private readonly IAccessTokenProvider _accessTokenProvider;
         private readonly IRefreshTokenProvider _refreshTokenProvider;
         private readonly IIDTokenProvider _idTokenProvider;
+        private readonly IUserRepository _userRepository;
 
         public TokenService
             (IAuthorizeService authorizeService,
             IClientRepository clientRepository,
             IAccessTokenProvider accessTokenProvider,
             IRefreshTokenProvider refreshTokenProvider,
-            IIDTokenProvider idTokenProvider
+            IIDTokenProvider idTokenProvider,
+            IUserRepository userRepository
             )
         {
             _authorizeService = authorizeService;
@@ -32,6 +36,7 @@ namespace Luma.Core.Services.Authorization
             _accessTokenProvider = accessTokenProvider;
             _refreshTokenProvider = refreshTokenProvider;
             _idTokenProvider = idTokenProvider;
+            _userRepository = userRepository;
         }
 
         public async Task<OAuthServiceResponse<TokenResponseDTO>> IssueTokensFromAuthorizationCode(TokenRequestDTO request)
@@ -423,6 +428,47 @@ namespace Luma.Core.Services.Authorization
             return OAuthServiceResponse<TokenResponseDTO>.Success(tokenResponse);
         }
 
+        public async Task<ServiceResponse<UserInfoResponseDTO?>> GetUserInfoAsync(string rawAccessToken)
+        {
+            var accessToken = await _accessTokenProvider.FindByRawTokenAsync(rawAccessToken);
+            if (accessToken == null || !accessToken.IsActive)
+            {
+                return ServiceResponse<UserInfoResponseDTO?>.Failure("invalid_request", "The access token is invalid or has expired.");
+            }
+
+            var user = await _userRepository.GetByIdAsync(accessToken.UserId!.Value);
+            if (user == null || user.Status == User.UserStatus.Deleted)
+            {
+                return ServiceResponse<UserInfoResponseDTO?>.Failure("invalid_request", "The user associated with the access token was not found.");
+            }
+
+            var accessTokenScopes = accessToken.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            var userInfo = new UserInfoResponseDTO
+                (sub: accessTokenScopes.Contains("openid") ? user.ExternalId : null,
+                name: accessTokenScopes.Contains("profile") ? user.GetFullName() : null,
+                given_name: accessTokenScopes.Contains("profile") ? user.FirstName : null,
+                family_name: accessTokenScopes.Contains("profile") ? user.LastName : null,
+                middle_name: accessTokenScopes.Contains("profile") ? user.MiddleName : null,
+                preferred_username: accessTokenScopes.Contains("profile") ? user.Username : null,
+                nickname: accessTokenScopes.Contains("profile") ? user.Nickname : null,
+                profile: accessTokenScopes.Contains("profile") ? user.ProfileUrl : null,
+                picture: accessTokenScopes.Contains("profile") ? user.ProfileImageUrl : null,
+                website: accessTokenScopes.Contains("profile") ? user.WebsiteUrl : null,
+                email: accessTokenScopes.Contains("email") ? user.Email : null,
+                email_verified: accessTokenScopes.Contains("email") ? user.IsEmailVerified : null,
+                gender: accessTokenScopes.Contains("profile") ? user.Gender : null,
+                birthdate: accessTokenScopes.Contains("profile") ? user.Birthdate : null,
+                zoneinfo: accessTokenScopes.Contains("profile") ? user.ZoneInfo : null,
+                locale: accessTokenScopes.Contains("profile") ? user.Locale : null,
+                phone_number: accessTokenScopes.Contains("phone") ? user.Phone : null,
+                phone_number_verified: accessTokenScopes.Contains("phone") ? user.IsPhoneVerified : null,
+                address: accessTokenScopes.Contains("address") ? user.AddressJson : null,
+                updated_at: accessTokenScopes.Contains("profile") ? user.UpdatedAt : null
+                );
+
+            return ServiceResponse<UserInfoResponseDTO?>.Success(userInfo);
+        }
 
         public async Task<OAuthServiceResponse<TokenIntrospectionResponseDTO>> IntrospectToken(TokenIntrospectionRequestDTO request)
         {

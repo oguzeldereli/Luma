@@ -139,6 +139,7 @@ if (auth.UseCustomFiles &&
 // Middleware & endpoints
 // ---------------------------
 app.UseHttpsRedirection();
+app.UseBearerTokenMiddleware();
 app.UseClientCredentialsMiddleware();
 app.MapControllers();
 
