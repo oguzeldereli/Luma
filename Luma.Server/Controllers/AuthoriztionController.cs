@@ -1,9 +1,11 @@
 ﻿using Luma.Core.DTOs.Authorization;
 using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Services;
+using Luma.Core.Options;
 using Luma.Server.Utility;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 
 namespace Luma.Controllers
 {
@@ -14,18 +16,21 @@ namespace Luma.Controllers
         private readonly ITokenService _tokenService;
         private readonly IUserLoginSessionCookieAccessor _userLoginSessionCookieAccessor;
         private readonly IUserLoginSessionProvider _userLoginSessionProvider;
+        private readonly IOptions<LumaOptions> _options;
 
         public AuthoriztionController(
             IAuthorizeService authorizeService,
             ITokenService tokenService,
             IUserLoginSessionCookieAccessor userLoginSessionCookieAccessor,
-            IUserLoginSessionProvider userLoginSessionProvider
+            IUserLoginSessionProvider userLoginSessionProvider,
+            IOptions<LumaOptions> options
             )
         {
             _authorizeService = authorizeService;
             _tokenService = tokenService;
             _userLoginSessionCookieAccessor = userLoginSessionCookieAccessor;
             _userLoginSessionProvider = userLoginSessionProvider;
+            _options = options;
         }
 
         [HttpGet]
@@ -297,15 +302,65 @@ namespace Luma.Controllers
         }
 
         [Route(".well-known/openid-configuration")]
-        public IActionResult OpenIDProviderMetadata()
+        public IActionResult OpenIdProviderMetadata()
         {
-            return Ok();
+            var issuer = $"{Request.Scheme}://{Request.Host.Value}";
+
+            return Ok(new
+            {
+                issuer,
+                authorization_endpoint = $"{issuer}/authorize",
+                token_endpoint = $"{issuer}/token",
+                userinfo_endpoint = $"{issuer}/userinfo",
+                introspection_endpoint = $"{issuer}/introspect",
+                revocation_endpoint = $"{issuer}/revoke",
+                jwks_uri = $"{issuer}/jwks",
+                registration_endpoint = $"{issuer}/registration",
+
+                scopes_supported = _options.Value.OAuth.SupportedScopes,
+                response_types_supported = new[] { "code" },
+                grant_types_supported = new[] { "authorization_code", "refresh_token", "client_credentials" },
+                subject_types_supported = new[] { "public" },
+
+                id_token_signing_alg_values_supported = new[] { "RS256", "ES256" },
+
+                token_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
+                introspection_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
+                revocation_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
+
+                claims_supported = new[]
+                {
+                    "sub","name","given_name","family_name","middle_name","nickname",
+                    "preferred_username","profile","picture","website","email",
+                    "email_verified","gender","birthdate","zoneinfo","locale",
+                    "phone_number","phone_number_verified","address","updated_at"
+                }
+            });
         }
 
         [Route(".well-known/oauth-authorization-server")]
-        public IActionResult OAuthAuthorizationServerMetadata()
+        public IActionResult OAuthServerMetadata()
         {
-            return Ok();
+            var currentDomain = $"{Request.Scheme}://{Request.Host.Value}";
+
+            return Ok(new
+            {
+                issuer = currentDomain,
+                authorization_endpoint = $"{currentDomain}/authorize",
+                token_endpoint = $"{currentDomain}/token",
+                revocation_endpoint = $"{currentDomain}/revoke",
+                introspection_endpoint = $"{currentDomain}/introspect",
+                jwks_uri = $"{currentDomain}/jwks",
+                registration_endpoint = $"{currentDomain}/registration",
+
+                scopes_supported = _options.Value.OAuth.SupportedScopes,
+                response_types_supported = new[] { "code" },
+                grant_types_supported = new[] { "authorization_code", "client_credentials", "refresh_token" },
+
+                token_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
+                introspection_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
+                revocation_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" }
+            });
         }
     }
 }

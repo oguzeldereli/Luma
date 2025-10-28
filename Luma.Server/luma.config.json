@@ -15,6 +15,7 @@
       }
     },
     "OAuth": {
+      "ScopesSupported": [ "openid", "profile", "email", "phone", "address" ],
       "AuthorizationCode": {
         "ValidForSeconds": 90 // has to be between 60 and 120 (inclusive)
       },

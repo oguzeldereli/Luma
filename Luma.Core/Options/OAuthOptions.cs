@@ -9,6 +9,14 @@ namespace Luma.Core.Options
 {
     public class OAuthOptions
     {
+        public List<string> SupportedScopes { get; set; } = new()
+        {
+            "openid",
+            "profile",
+            "email",
+            "address",
+            "phone"
+        };
         public List<ClientConfig> Clients { get; set; } = new();
         public AuthorizationCodeOptions AuthorizationCode { get; set; } = new();
     }
