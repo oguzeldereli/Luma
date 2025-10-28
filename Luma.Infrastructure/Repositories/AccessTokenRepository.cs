@@ -17,15 +17,15 @@ namespace Luma.Infrastructure.Repositories
     public class AccessTokenRepository : IAccessTokenRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly TokenGenerator _tokenGenerator;
-        private readonly TokenHasher _tokenHasher;
+        private readonly ITokenGenerator _tokenGenerator;
+        private readonly ITokenHasher _tokenHasher;
         private readonly IHmacKeyProvider _tokenHashKeyProvider;
         private readonly IOptions<LumaOptions> _options;
 
         public AccessTokenRepository(
             ApplicationDbContext context,
-            TokenGenerator tokenGenerator,
-            TokenHasher tokenHasher,
+            ITokenGenerator tokenGenerator,
+            ITokenHasher tokenHasher,
             IHmacKeyProvider tokenHashKeyProvider,
             IOptions<LumaOptions> options)
         {
@@ -131,7 +131,7 @@ namespace Luma.Infrastructure.Repositories
                 var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value ?? Guid.NewGuid().ToString();
                 var scope = jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value ?? tokenOpts.DefaultScope;
 
-                var (plain, hash, hashKeyId) = _tokenGenerator.GenerateJwtTokenHash(jwt, defaultKeyId);
+                var (hash, hashKeyId) = _tokenHasher.ComputeJwtTokenHash(jwt, defaultKeyId);
 
                 AccessToken token = AccessToken.Create(
                     userId: userId.Value,
@@ -148,7 +148,7 @@ namespace Luma.Infrastructure.Repositories
 
                 _context.AccessTokens.Add(token);
                 await _context.SaveChangesAsync();
-                return (token, plain);
+                return (token, jwt);
             }
             else
             {
@@ -169,7 +169,7 @@ namespace Luma.Infrastructure.Repositories
                 var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value ?? Guid.NewGuid().ToString();
                 var scope = jwtToken.Claims.FirstOrDefault(c => c.Type == "scope")?.Value ?? tokenOpts.DefaultScope;
 
-                var (plain, hash, hashKeyId) = _tokenGenerator.GenerateJwtTokenHash(jwt, defaultKeyId);
+                var (hash, hashKeyId) = _tokenHasher.ComputeJwtTokenHash(jwt, defaultKeyId);
 
                 AccessToken token = AccessToken.Create(
                     clientId: clientId,
@@ -185,7 +185,7 @@ namespace Luma.Infrastructure.Repositories
 
                 _context.AccessTokens.Add(token);
                 await _context.SaveChangesAsync();
-                return (token, plain);
+                return (token, jwt);
             }
         }
 

@@ -1,12 +1,13 @@
-﻿using System.Security.Cryptography;
+﻿using Luma.Core.Interfaces.Security;
+using System.Security.Cryptography;
 
 namespace Luma.Infrastructure.Security
 {
-    public class TokenGenerator
+    public class TokenGenerator : ITokenGenerator
     {
-        private readonly TokenHasher _tokenHasher;
+        private readonly ITokenHasher _tokenHasher;
 
-        public TokenGenerator(TokenHasher tokenHasher)
+        public TokenGenerator(ITokenHasher tokenHasher)
         {
             _tokenHasher = tokenHasher;
         }
@@ -47,12 +48,6 @@ namespace Luma.Infrastructure.Security
             string plain = result.ToString($"D{digits}");
             var (hashed, key) = _tokenHasher.ComputeHmacSha256(plain, keyId);
             return (plain, hashed, key);
-        }
-
-        public (string plain, string hashed, string keyId) GenerateJwtTokenHash(string jwt, string? keyId = null)
-        {
-            var (hashed, key) = _tokenHasher.ComputeHmacSha256(jwt, keyId);
-            return (jwt, hashed, key);
         }
     }
 }

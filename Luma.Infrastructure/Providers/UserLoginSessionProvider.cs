@@ -1,4 +1,5 @@
 ﻿using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Security;
 using Luma.Core.Models.Auth;
 using Luma.Core.Options;
 using Luma.Infrastructure.Repositories;
@@ -14,13 +15,13 @@ namespace Luma.Infrastructure.Providers
     {
         private readonly IUserRepository _userRepository;
         private readonly IUserLoginSessionRepository _repository;
-        private readonly TokenGenerator _generator;
+        private readonly ITokenGenerator _generator;
         private readonly IOptions<LumaOptions> _options;
 
         public UserLoginSessionProvider(
             IUserRepository userRepository,
             IUserLoginSessionRepository repository,
-            TokenGenerator generator,
+            ITokenGenerator generator,
             IOptions<LumaOptions> options)
         {
             _userRepository = userRepository;

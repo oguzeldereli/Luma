@@ -13,8 +13,8 @@ namespace Luma.Infrastructure.Extensions
     {
         public static IServiceCollection AddLumaSecurity(this IServiceCollection services)
         {
-            services.AddSingleton<TokenHasher>();
-            services.AddSingleton<TokenGenerator>();
+            services.AddSingleton<ITokenHasher, TokenHasher>();
+            services.AddSingleton<ITokenGenerator, TokenGenerator>();
 
             return services;
         }

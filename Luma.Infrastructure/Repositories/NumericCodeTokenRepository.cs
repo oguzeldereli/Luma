@@ -12,15 +12,15 @@ namespace Luma.Infrastructure.Repositories
     public class NumericCodeTokenRepository : INumericCodeTokenRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly TokenGenerator _tokenGenerator;
-        private readonly TokenHasher _tokenHasher;
+        private readonly ITokenGenerator _tokenGenerator;
+        private readonly ITokenHasher _tokenHasher;
         private readonly IHmacKeyProvider _tokenHashKeyProvider;
         private readonly IOptions<LumaOptions> _options;
 
         public NumericCodeTokenRepository(
             ApplicationDbContext context,
-            TokenGenerator tokenGenerator,
-            TokenHasher tokenHasher,
+            ITokenGenerator tokenGenerator,
+            ITokenHasher tokenHasher,
             IHmacKeyProvider tokenHashKeyProvider,
             IOptions<LumaOptions> options)
         {

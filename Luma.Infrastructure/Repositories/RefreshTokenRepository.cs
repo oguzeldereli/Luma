@@ -18,15 +18,15 @@ namespace Luma.Infrastructure.Repositories
     public class RefreshTokenRepository : IRefreshTokenRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly TokenGenerator _tokenGenerator;
-        private readonly TokenHasher _tokenHasher;
+        private readonly ITokenGenerator _tokenGenerator;
+        private readonly ITokenHasher _tokenHasher;
         private readonly IHmacKeyProvider _tokenHashKeyProvider;
         private readonly IOptions<LumaOptions> _options;
 
         public RefreshTokenRepository(
             ApplicationDbContext context,
-            TokenGenerator tokenGenerator,
-            TokenHasher tokenHasher,
+            ITokenGenerator tokenGenerator,
+            ITokenHasher tokenHasher,
             IHmacKeyProvider tokenHashKeyProvider,
             IOptions<LumaOptions> options)
         {

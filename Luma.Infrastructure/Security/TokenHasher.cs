@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Luma.Infrastructure.Security
 {
-    public class TokenHasher
+    public class TokenHasher : ITokenHasher
     {
         private readonly IHmacKeyProvider _keyProvider;
 
@@ -62,5 +62,11 @@ namespace Luma.Infrastructure.Security
 
         public string ComputeHashForLookup(string plain, string keyId) =>
             ComputeHmacSha256(plain, keyId).hash;
+
+        public (string hashed, string keyId) ComputeJwtTokenHash(string jwt, string? keyId = null)
+        {
+            var (hashed, key) = ComputeHmacSha256(jwt, keyId);
+            return (hashed, key);
+        }
     }
 }

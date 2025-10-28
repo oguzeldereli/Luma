@@ -14,12 +14,12 @@ namespace Luma.Infrastructure.Repositories
     public class UserLoginSessionRepository : IUserLoginSessionRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly TokenHasher _tokenHasher;
+        private readonly ITokenHasher _tokenHasher;
         private readonly IHmacKeyProvider _keyProvider;
 
         public UserLoginSessionRepository(
             ApplicationDbContext context,
-            TokenHasher tokenHasher,
+            ITokenHasher tokenHasher,
             IHmacKeyProvider keyProvider)
         {
             _context = context;
