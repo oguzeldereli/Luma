@@ -18,5 +18,6 @@ namespace Luma.Core.Interfaces.Services
         Task<ServiceResponse<UserInfoResponseDTO?>> GetUserInfoAsync(string rawAccessToken);
         Task<OAuthServiceResponse<TokenIntrospectionResponseDTO>> IntrospectToken(TokenIntrospectionRequestDTO request);
         Task<OAuthServiceResponse<bool>> RevokeToken(TokenRevocationRequestDTO request);
+        Task<ServiceResponse<List<JsonWebKeySetEntry>>> GetJWKS();
     }
 }

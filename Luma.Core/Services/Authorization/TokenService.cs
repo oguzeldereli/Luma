@@ -1,6 +1,7 @@
 ﻿using Luma.Core.DTOs.Authorization;
 using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Authorization;
+using Luma.Core.Interfaces.Security;
 using Luma.Core.Interfaces.Services;
 using Luma.Core.Models.Auth;
 using Luma.Core.Models.Services;
@@ -15,6 +16,7 @@ namespace Luma.Core.Services.Authorization
 {
     public class TokenService : ITokenService
     {
+        private readonly IJwtSigningKeyProvider _jwtSigningKeyProvider;
         private readonly IClientRepository _clientRepository;
         private readonly IAuthorizeService _authorizeService;
         private readonly IAccessTokenProvider _accessTokenProvider;
@@ -23,7 +25,8 @@ namespace Luma.Core.Services.Authorization
         private readonly IUserRepository _userRepository;
 
         public TokenService
-            (IAuthorizeService authorizeService,
+            (IJwtSigningKeyProvider jwtSigningKeyProvider,
+            IAuthorizeService authorizeService,
             IClientRepository clientRepository,
             IAccessTokenProvider accessTokenProvider,
             IRefreshTokenProvider refreshTokenProvider,
@@ -31,6 +34,7 @@ namespace Luma.Core.Services.Authorization
             IUserRepository userRepository
             )
         {
+            _jwtSigningKeyProvider = jwtSigningKeyProvider;
             _authorizeService = authorizeService;
             _clientRepository = clientRepository;
             _accessTokenProvider = accessTokenProvider;
@@ -553,6 +557,18 @@ namespace Luma.Core.Services.Authorization
             var atokenRevoked = await _accessTokenProvider.RevokeTokenAsync(request.token, request.client_id);
             var rtokenRevoked = await _refreshTokenProvider.RevokeTokenAsync(request.token, request.client_id);
             return OAuthServiceResponse<bool>.Success(atokenRevoked || rtokenRevoked);
+        }
+
+        public async Task<ServiceResponse<List<JsonWebKeySetEntry>>> GetJWKS()
+        {
+            try
+            {
+                return ServiceResponse<List<JsonWebKeySetEntry>>.Success(_jwtSigningKeyProvider.GetJsonWebKeySet());
+            }
+            catch (Exception ex)
+            {
+                return ServiceResponse<List<JsonWebKeySetEntry>>.Failure("server_error", $"An error occurred while retrieving the JWKS: {ex.Message}");
+            }
         }
     }
 }

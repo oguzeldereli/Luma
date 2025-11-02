@@ -1,4 +1,5 @@
 ﻿using Luma.Core.Interfaces.Security;
+using Luma.Core.Models.Auth;
 using Luma.Core.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -105,6 +106,49 @@ namespace Luma.Infrastructure.Providers
             if (!_keys.TryGetValue(keyId, out var pair))
                 throw new InvalidOperationException($"Unknown key ID '{keyId}'.");
             return pair.verifying;
+        }
+
+        public List<JsonWebKeySetEntry> GetJsonWebKeySet()
+        {
+            var jwkSet = new List<JsonWebKeySetEntry>();
+            foreach (var (keyId, pair) in _keys)
+            {
+                var verifyingKey = pair.verifying;
+                switch (verifyingKey)
+                {
+                    case RsaSecurityKey rsaKey:
+                        {
+                            var rsaParams = rsaKey.Rsa.ExportParameters(false);
+                            var n = Base64UrlEncoder.Encode(rsaParams.Modulus!);
+                            var e = Base64UrlEncoder.Encode(rsaParams.Exponent!);
+                            jwkSet.Add(new JsonWebKeySetEntry(
+                                kty: "RSA",
+                                kid: keyId,
+                                use: "sig",
+                                alg: Algorithm,
+                                n: n,
+                                e: e));
+                            break;
+                        }
+                    case ECDsaSecurityKey ecKey:
+                        {
+                            var ecParams = ecKey.ECDsa.ExportParameters(false);
+                            var x = Base64UrlEncoder.Encode(ecParams.Q.X!);
+                            var y = Base64UrlEncoder.Encode(ecParams.Q.Y!);
+                            jwkSet.Add(new JsonWebKeySetEntry(
+                                kty: "EC",
+                                kid: keyId,
+                                use: "sig",
+                                alg: Algorithm,
+                                n: x,
+                                e: y));
+                            break;
+                        }
+                    default:
+                        throw new NotSupportedException($"Unsupported key type for JWK export: {verifyingKey.GetType().Name}");
+                }
+            }
+            return jwkSet;
         }
     }
 }

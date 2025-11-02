@@ -22,6 +22,7 @@
       "Clients": [
         {
           "ClientId": "luma-self-hosted",
+          "DefaultPostLogoutRedirectUri": "https://localhost/signout-callback-oidc",
           "DefaultResource": "https://localhost",
           "Resources": [ "https://localhost" ],
           "ClientSecretSHA256_Base64": "Y2UyMGQ3OWRlNjRiYzk2M2ZlMjljYmNmYzNlMDNmZTE2MWIzYTQ1ZDc2YzJmYzNiYmY2NmExZWY3OGViYjdiZA==",

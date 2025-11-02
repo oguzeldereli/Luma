@@ -9,6 +9,7 @@ namespace Luma.Core.Options.OAuth
     public class ClientConfig
     {
         public string ClientId { get; set; } = default!;
+        public string DefaultPostLogoutRedirectUri { get; set; } = default!;
         public string DefaultResource { get; set; } = default!;
         public List<string> Resources { get; set; } = default!;
         public string ClientSecretSHA256_Base64 { get; set; } = default!;

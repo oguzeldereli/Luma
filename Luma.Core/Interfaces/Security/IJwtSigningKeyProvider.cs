@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Luma.Core.Models.Auth;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,5 +19,6 @@ namespace Luma.Core.Interfaces.Security
         SecurityKey GetSigningKey(string keyId);
         SigningCredentials GetSigningCredentials(string? keyId = null);
         SecurityKey GetVerificationKey(string keyId);
+        List<JsonWebKeySetEntry> GetJsonWebKeySet();
     }
 }

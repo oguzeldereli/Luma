@@ -1,8 +1,10 @@
 ﻿using Luma.Core.DTOs.Authorization;
 using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Services;
 using Luma.Core.Options;
 using Luma.Server.Utility;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
@@ -12,6 +14,7 @@ namespace Luma.Controllers
     [Route("/")]
     public class AuthoriztionController : Controller
     {
+        private readonly IClientRepository _clientRepository;
         private readonly IAuthorizeService _authorizeService;
         private readonly ITokenService _tokenService;
         private readonly IUserLoginSessionCookieAccessor _userLoginSessionCookieAccessor;
@@ -19,6 +22,7 @@ namespace Luma.Controllers
         private readonly IOptions<LumaOptions> _options;
 
         public AuthoriztionController(
+            IClientRepository clientRepository,
             IAuthorizeService authorizeService,
             ITokenService tokenService,
             IUserLoginSessionCookieAccessor userLoginSessionCookieAccessor,
@@ -26,6 +30,7 @@ namespace Luma.Controllers
             IOptions<LumaOptions> options
             )
         {
+            _clientRepository = clientRepository;
             _authorizeService = authorizeService;
             _tokenService = tokenService;
             _userLoginSessionCookieAccessor = userLoginSessionCookieAccessor;
@@ -361,6 +366,67 @@ namespace Luma.Controllers
                 introspection_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" },
                 revocation_endpoint_auth_methods_supported = new[] { "client_secret_basic", "client_secret_post" }
             });
+        }
+
+        [Route("jwks.json")]
+        [Route("jwks")]
+        public async Task<IActionResult> JSONWebKeySet()
+        {
+            var keys = await _tokenService.GetJWKS();
+            if (!string.IsNullOrWhiteSpace(keys.ErrorCode) || keys.Data == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(keys.Data);
+        }
+
+        [Route("par")]
+        public IActionResult PushedAuthorizationRequest()
+        {
+            return Ok();
+        }
+
+
+        [Route("logout")]
+        public async Task<IActionResult> Logout([FromQuery] string? post_logout_redirect_uri = null)
+        {
+            var cookie = _userLoginSessionCookieAccessor.GetLoginSessionToken();
+            var redirect = post_logout_redirect_uri;
+
+            var session = await _userLoginSessionProvider.GetBySessionTokenAsync(cookie!);
+            if (session != null)
+            {
+                var client = _clientRepository.FindClientById(session.ClientId!);
+                if (client != null && !string.IsNullOrWhiteSpace(redirect))
+                {
+                    if (!client.RedirectUris.Contains(redirect))
+                    {
+                        redirect = client.DefaultPostLogoutRedirectUri;
+                    }
+                }
+                else
+                {
+                    redirect = null;
+                }
+
+                await _userLoginSessionProvider.RevokeAsync(session.Id, "User logged out");
+            }
+
+            _userLoginSessionCookieAccessor.ClearLoginSessionToken();
+
+            if (!string.IsNullOrWhiteSpace(redirect))
+            {
+                return Redirect(redirect);
+            }
+            
+            return Ok();
+        }
+
+        [Route("registration")]
+        public IActionResult ClientRegistration()
+        {
+            return Ok();
         }
     }
 }
