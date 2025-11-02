@@ -400,7 +400,7 @@ namespace Luma.Controllers
                 var client = _clientRepository.FindClientById(session.ClientId!);
                 if (client != null && !string.IsNullOrWhiteSpace(redirect))
                 {
-                    if (!client.RedirectUris.Contains(redirect))
+                    if (!client.PostLogoutRedirectUris.Contains(redirect))
                     {
                         redirect = client.DefaultPostLogoutRedirectUri;
                     }
