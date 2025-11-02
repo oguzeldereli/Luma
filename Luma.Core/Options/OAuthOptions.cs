@@ -19,5 +19,6 @@ namespace Luma.Core.Options
         };
         public List<ClientConfig> Clients { get; set; } = new();
         public AuthorizationCodeOptions AuthorizationCode { get; set; } = new();
+        public int ParExpirationSeconds { get; set; } = 90;
     }
 }

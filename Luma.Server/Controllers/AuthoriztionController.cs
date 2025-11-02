@@ -2,6 +2,8 @@
 using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Services;
+using Luma.Core.Models.Auth;
+using Luma.Core.Models.Services;
 using Luma.Core.Options;
 using Luma.Server.Utility;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -40,33 +42,87 @@ namespace Luma.Controllers
 
         [HttpGet]
         [Route("authorize")]
-        public async Task<IActionResult> StartAuthorizationFlowAsync([FromQuery] AuthorizeRequestDTO authorizeArgs)
+        public async Task<IActionResult> StartAuthorizationFlowAsync([FromQuery] AuthorizeRequestDTO request)
         {
-            var result = await _authorizeService.CreateAuthorizationCodeStateAsync(authorizeArgs);
-            if (!string.IsNullOrWhiteSpace(result.ErrorCode) || result.Data == null)
+            var state = "";
+            if (!string.IsNullOrWhiteSpace(request.request_uri))
             {
-                return result.ToErrorResponse();
+                if (string.IsNullOrWhiteSpace(request.client_id))
+                {
+                    return OAuthServiceResponse<object>
+                        .Failure("invalid_request", "client_id is required when using request_uri.", 400)
+                        .ToErrorResponse();
+                }
+
+                if (request.request_uri != null && (
+                    request.scope != null || request.redirect_uri != null || request.response_type != null))
+                {
+                    return OAuthServiceResponse<object>
+                        .Failure("invalid_request", "When request_uri is used, authorization request parameters must not be included.", 400)
+                        .ToErrorResponse();
+                }
+
+                var parState = await _authorizeService.GetParStateAsync(request.request_uri!);
+                if (parState.ErrorCode != null || parState.Data == null)
+                {
+                    return parState.ToErrorResponse();
+                }
+
+                var authCodeState = await _authorizeService.GetAuthorizationCodeStateAsync(request.client_id, parState.Data);
+                if (authCodeState.ErrorCode != null || authCodeState.Data == null)
+                {
+                    return OAuthServiceResponse<object>
+                        .Failure("invalid_request", "Invalid or expired request_uri", 400)
+                        .ToErrorResponse();
+                }
+
+                if (authCodeState.Data.clientId != request.client_id)
+                {
+                    return OAuthServiceResponse<object>
+                        .Failure("invalid_client", "Client does not match the pushed request (request_uri).", 302, null, authCodeState.Data.state, authCodeState.Data.redirectUri, authCodeState.Data.responseMode)
+                        .ToErrorResponse();
+                }
+
+                var remove = await _authorizeService.DeleteParStateAsync(parState.Data);
+                if (!string.IsNullOrWhiteSpace(remove.ErrorCode) || remove.Data == false)
+                {
+                    return OAuthServiceResponse<object>
+                        .Failure(remove.ErrorCode ?? "server_error", remove.ErrorMessage ?? "Couldn't remove the par state. Try again later.", 302, null, authCodeState.Data.state, authCodeState.Data.redirectUri, authCodeState.Data.responseMode)
+                        .ToErrorResponse();
+                }
+
+                state = parState.Data;
+            }
+            else
+            {
+                var result = await _authorizeService.CreateAuthorizationCodeStateAsync(request);
+                if (!string.IsNullOrWhiteSpace(result.ErrorCode) || result.Data == null)
+                {
+                    return result.ToErrorResponse();
+                }
+
+                state = result.State;
             }
 
             var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
             if (string.IsNullOrWhiteSpace(token))
             {
-                return Redirect($"/login?state={result.State}");
+                return Redirect($"/login?state={state}");
             }
 
             var loginSession = await _userLoginSessionProvider.GetBySessionTokenAsync(token);
             if (loginSession == null)
             {
-                return Redirect($"/login?state={result.State}");
+                return Redirect($"/login?state={state}");
             }
 
             var refreshedActivity = await _userLoginSessionProvider.RefreshActivityAsync(loginSession.Id);
             if (!refreshedActivity)
             {
-                return Redirect($"/login?state={result.State}");
+                return Redirect($"/login?state={state}");
             }
 
-            var prompts = (authorizeArgs.prompt ?? "")
+            var prompts = (request.prompt ?? "")
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (prompts.Contains("login"))
@@ -74,30 +130,30 @@ namespace Luma.Controllers
                 await _userLoginSessionProvider.RevokeAsync(loginSession.Id, "Prompt=login requested");
                 _userLoginSessionCookieAccessor.ClearLoginSessionToken();
 
-                return Redirect($"/login?state={result.State}");
+                return Redirect($"/login?state={state}");
             }
             else if (prompts.Contains("consent"))
             {
-                return Redirect($"/consent?state={result.State}");
+                return Redirect($"/consent?state={state}");
             }
             else if (prompts.Contains("select_account"))
             {
-                return Redirect($"/select-account?state={result.State}");
+                return Redirect($"/select-account?state={state}");
             }
 
-            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, result.State!);
+            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, state!);
             if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
                 return auth.ToErrorResponse();
             }
 
-            if (authorizeArgs.response_mode == "form_post")
+            if (request.response_mode == "form_post")
             {
                 return new ContentResult
                 {
                     ContentType = "text/html",
                     Content = $"<html><body onload=\"document.forms[0].submit()\">" +
-                                  $"<form method='post' action='{authorizeArgs.redirect_uri}'>" +
+                                  $"<form method='post' action='{auth.RedirectUri}'>" +
                                   $"<input type='hidden' name='code' value='{auth.Data}' />" +
                                   $"<input type='hidden' name='state' value='{auth.State}' />" +
                               "</form></body></html>"
@@ -110,7 +166,7 @@ namespace Luma.Controllers
                     { "code", auth.Data },
                     { "state", auth.State }
                 };
-                var redirectUrl = QueryHelpers.AddQueryString(authorizeArgs.redirect_uri!, queryParams);
+                var redirectUrl = QueryHelpers.AddQueryString(auth.RedirectUri!, queryParams);
                 return Redirect(redirectUrl);
             }
         }
@@ -381,12 +437,60 @@ namespace Luma.Controllers
             return Ok(keys.Data);
         }
 
+        [HttpPost]
         [Route("par")]
-        public IActionResult PushedAuthorizationRequest()
+        public async Task<IActionResult> PushedAuthorizationRequest([FromForm] ParEndpointDTO request)
         {
-            return Ok();
-        }
+            var clientId = (string)(HttpContext.Items["ClientId"] ?? request.client_id ?? "");
+            var clientSecret = HttpContext.Items["ClientSecret"] ?? request.client_secret ?? "";
+            if (string.IsNullOrWhiteSpace(clientId.ToString()))
+            {
+                return Unauthorized(new
+                {
+                    error = "invalid_client",
+                    error_description = "Client authentication missing.",
+                });
+            }
 
+            if (request.client_id != clientId.ToString())
+            {
+                return Unauthorized(new
+                {
+                    error = "invalid_client",
+                    error_description = "Client authentication does not match the request data.",
+                });
+            }
+
+            ParRequestDTO parRequestDTO = new ParRequestDTO(
+                client_id: clientId.ToString(),
+                response_type: request.response_type,
+                client_secret: clientSecret.ToString(),
+                redirect_uri: request.redirect_uri,
+                scope: request.scope,
+                state: request.state,
+                resource: request.resource,
+                code_challenge: request.code_challenge,
+                code_challenge_method: request.code_challenge_method,
+                nonce: request.nonce,
+                response_mode: request.response_mode,
+                prompt: request.prompt,
+                max_age: request.max_age,
+                login_hint: request.login_hint,
+                claims: request.claims
+                );
+
+            var result = await _authorizeService.CreateParAsync(parRequestDTO);
+            if (result.ErrorCode != null || result.Data.clientId == null || result.Data.requestUri == null)
+            {
+                return result.ToErrorResponse();
+            }
+
+            return Ok(new
+            {
+                request_uri = result.Data.requestUri,
+                expires_in = _options.Value.OAuth.ParExpirationSeconds
+            });
+        }
 
         [Route("logout")]
         public async Task<IActionResult> Logout([FromQuery] string? post_logout_redirect_uri = null)

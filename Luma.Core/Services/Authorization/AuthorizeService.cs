@@ -17,17 +17,20 @@ namespace Luma.Core.Services.Authorization
 {
     public class AuthorizeService : IAuthorizeService
     {
+        private readonly IParStateProvider _parStateProvider;
         private readonly IClientRepository _clientRepository;
         private readonly IAuthorizationCodeStateProvider _authorizationCodeStateProvider;
         private readonly IAuthorizationCodeProvider _authorizationCodeProvider;
         private readonly IOptions<LumaOptions> _options;
 
         public AuthorizeService(
+            IParStateProvider parStateProvider,
             IClientRepository clientRepository,
             IAuthorizationCodeStateProvider authorizationCodeStateProvider,
             IAuthorizationCodeProvider authorizationCodeProvider,
             IOptions<LumaOptions> options)
         {
+            _parStateProvider = parStateProvider;
             _clientRepository = clientRepository;
             _authorizationCodeStateProvider = authorizationCodeStateProvider;
             _authorizationCodeProvider = authorizationCodeProvider;
@@ -36,11 +39,12 @@ namespace Luma.Core.Services.Authorization
         
         public async Task<OAuthServiceResponse<string>> CreateAuthorizationCodeStateAsync(AuthorizeRequestDTO request)
         {
-            var state = request.state;
-            if (string.IsNullOrEmpty(request.state))
-                return OAuthServiceResponse<string>.Failure("invalid_request", "The state parameter is required.", 400, null, state, null, request.response_mode ?? "query");
+            if (string.IsNullOrWhiteSpace(request.state))
+                return OAuthServiceResponse<string>.Failure("invalid_request", "The state parameter is required.", 400, null, request.state, null, request.response_mode ?? "query");
 
-            if (string.IsNullOrEmpty(request.client_id))
+            var state = request.state;
+
+            if (string.IsNullOrWhiteSpace(request.client_id))
                 return OAuthServiceResponse<string>.Failure("invalid_request", "The client_id is required.", 400, null, state, null, request.response_mode ?? "query");
 
             var client = _clientRepository.FindClientById(request.client_id);
@@ -50,12 +54,12 @@ namespace Luma.Core.Services.Authorization
             var clientId = client.ClientId;
             var redirectUri = request.redirect_uri ?? client.DefaultRedirectUri;
 
-            if (!_clientRepository.ClientHasRedirectUri(clientId, redirectUri))
+            if (string.IsNullOrWhiteSpace(redirectUri) || !_clientRepository.ClientHasRedirectUri(clientId, redirectUri))
                 return OAuthServiceResponse<string>.Failure("invalid_request", "The specified redirect_uri is not registered for the client.", 400, null, state, null, request.response_mode ?? "query");
 
             var resource = request.resource ?? client.DefaultResource;
 
-            if (!_clientRepository.ClientHasResource(clientId, resource))
+            if (string.IsNullOrWhiteSpace(resource) || !_clientRepository.ClientHasResource(clientId, resource))
                 return OAuthServiceResponse<string>.Failure("invalid_request", "The specified resource is not allowed for the client.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
 
             if (!_clientRepository.ClientAllowsGrantType(clientId, "authorization_code"))
@@ -69,17 +73,17 @@ namespace Luma.Core.Services.Authorization
 
             var scope = request.scope ?? client.DefaultScope;
 
-            if (!_clientRepository.ClientHasScope(clientId, scope.Split(' ')))
+            if (string.IsNullOrWhiteSpace(scope) || !_clientRepository.ClientHasScope(clientId, scope.Split(' ')))
                 return OAuthServiceResponse<string>.Failure("invalid_scope", "The specified scope is not allowed for the client.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
 
-            if (!string.IsNullOrEmpty(request.code_challenge_method) && string.IsNullOrEmpty(request.code_challenge))
+            if (!string.IsNullOrWhiteSpace(request.code_challenge_method) && string.IsNullOrWhiteSpace(request.code_challenge))
             {
                 return OAuthServiceResponse<string>.Failure("invalid_request", "code_challenge is required when code_challenge_method is specified.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
             }
             
-            if (!string.IsNullOrEmpty(request.code_challenge))
+            if (!string.IsNullOrWhiteSpace(request.code_challenge))
             {
-                if (string.IsNullOrEmpty(request.code_challenge_method))
+                if (string.IsNullOrWhiteSpace(request.code_challenge_method))
                     return OAuthServiceResponse<string>.Failure("invalid_request", "code_challenge_method required.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
                 if (!string.Equals(request.code_challenge_method, "S256", StringComparison.OrdinalIgnoreCase))
                     return OAuthServiceResponse<string>.Failure("invalid_request", "Only S256 code_challenge_method is supported.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
@@ -150,9 +154,108 @@ namespace Luma.Core.Services.Authorization
             return OAuthServiceResponse<string>.Success(redirectUri, 302, codeState.state, redirectUri, request.response_mode ?? "query");
         }
 
+        public async Task<OAuthServiceResponse<(string clientId, string requestUri)>> CreateParAsync(ParRequestDTO request)
+        {
+            var authorizeRequest = new AuthorizeRequestDTO
+            (
+                response_type: request.response_type,
+                client_id: request.client_id,
+                redirect_uri: request.redirect_uri,
+                scope: request.scope,
+                state: request.state ?? Guid.NewGuid().ToString(),
+                resource: request.resource,
+                code_challenge: request.code_challenge,
+                code_challenge_method: request.code_challenge_method,
+                nonce: request.nonce,
+                response_mode: request.response_mode,
+                prompt: request.prompt,
+                max_age: request.max_age,
+                login_hint: request.login_hint,
+                claims: request.claims
+            );
+
+            if (string.IsNullOrWhiteSpace(request.client_id) || !_clientRepository.ClientExists(request.client_id))
+            {
+                return OAuthServiceResponse<(string clientId, string requestUri)>.Failure(
+                    "invalid_client",
+                    "The client_id provided is invalid.",
+                    401, null, null, null, null);
+            }
+
+            if (_clientRepository.ClientIsConfidential(request.client_id) && (request.client_secret == null || !_clientRepository.AuthenticateClient(request.client_id, request.client_secret)))
+            {
+                return OAuthServiceResponse<(string clientId, string requestUri)>.Failure(
+                    "invalid_client",
+                    "The client authentication failed.",
+                    401, null, null, null, null);
+            }
+
+            var client = _clientRepository.FindClientById(request.client_id);
+
+            var result = await CreateAuthorizationCodeStateAsync(authorizeRequest);
+            if (result.ErrorCode != null || result.Data == null)
+            {
+                return OAuthServiceResponse<(string clientId, string requestUri)>.Failure(
+                    result.ErrorCode ?? "server_error",
+                    result.ErrorMessage ?? "Couldn't create authorization state. An unexpected error occured.",
+                    result.StatusCode ?? 500,
+                    result.ErrorUri,
+                    result.State ?? request.state,
+                    result.RedirectUri);
+            }
+
+            var sessionId = await _parStateProvider.StoreParStateAsync(request.state);
+            if (sessionId == null)
+            {
+                return OAuthServiceResponse<(string clientId, string requestUri)>.Failure(
+                    "server_error",
+                    "Failed to store PAR state.",
+                    500,
+                    null,
+                    result.State,
+                    result.RedirectUri);
+            }
+
+            return OAuthServiceResponse<(string clientId, string requestUri)>.Success(
+                (request.client_id, "urn:ietf:params:oauth:request_uri:" + sessionId),
+                200,
+                result.State,
+                result.RedirectUri,
+                result.ResponseMode);
+        }
+
+        public async Task<OAuthServiceResponse<string>> GetParStateAsync(string requestUri)
+        {
+            var prefix = "urn:ietf:params:oauth:request_uri:";
+            if (!requestUri.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return OAuthServiceResponse<string>.Failure("invalid_request", "Invalid request_uri format", 400);
+            }
+
+            string id = requestUri.Substring(prefix.Length);
+            var state = await _parStateProvider.RetrieveParStateAsync(id);
+            if (state == null)
+            {
+                return OAuthServiceResponse<string>.Failure("invalid_request", "Couldn't find a state associated with the request_uri", 400);
+            }
+
+            return OAuthServiceResponse<string>.Success(state);
+        }
+
+        public async Task<OAuthServiceResponse<bool>> DeleteParStateAsync(string state)
+        {
+            var remove = await _parStateProvider.RemoveParStateByStateAsync(state);
+            if (remove == false)
+            {
+                return OAuthServiceResponse<bool>.Failure("server_error", "Couldn't remove the par request from the system. Try again.", 500, null, state);
+            }
+
+            return OAuthServiceResponse<bool>.Success(remove);
+        }
+
         public async Task<ServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string state)
         {
-            if (string.IsNullOrEmpty(state))
+            if (string.IsNullOrWhiteSpace(state))
                 return ServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "The state parameter is required.");
 
             var result =  await _authorizationCodeStateProvider.GetAsync(state);
@@ -167,7 +270,7 @@ namespace Luma.Core.Services.Authorization
 
         public async Task<ServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string state)
         {
-            if (string.IsNullOrEmpty(state))
+            if (string.IsNullOrWhiteSpace(state))
                 return ServiceResponse<bool>.Failure("invalid_request", "The state parameter is required.");
             
             var existingStateResult = await _authorizationCodeStateProvider.GetAsync(state);
@@ -203,14 +306,14 @@ namespace Luma.Core.Services.Authorization
             if (!_clientRepository.ClientHasRedirectUri(existingStateResult.clientId, existingStateResult.redirectUri ?? client.DefaultRedirectUri))
                 return OAuthServiceResponse<string>.Failure("invalid_request", "The specified redirect_uri is not registered for the client.", 302, null, state, redirectUri, responseMode);
 
-            if (!string.IsNullOrEmpty(existingStateResult.codeChallengeMethod) && string.IsNullOrEmpty(existingStateResult.codeChallenge))
+            if (!string.IsNullOrWhiteSpace(existingStateResult.codeChallengeMethod) && string.IsNullOrWhiteSpace(existingStateResult.codeChallenge))
             {
                 return OAuthServiceResponse<string>.Failure("invalid_request", "code_challenge is required when code_challenge_method is specified.", 302, null, state, redirectUri, responseMode);
             }
 
-            if (!string.IsNullOrEmpty(existingStateResult.codeChallenge))
+            if (!string.IsNullOrWhiteSpace(existingStateResult.codeChallenge))
             {
-                if (string.IsNullOrEmpty(existingStateResult.codeChallengeMethod))
+                if (string.IsNullOrWhiteSpace(existingStateResult.codeChallengeMethod))
                     return OAuthServiceResponse<string>.Failure("invalid_request", "code_challenge_method required.", 302, null, state, redirectUri, responseMode);
                 if (!string.Equals(existingStateResult.codeChallengeMethod, "S256", StringComparison.OrdinalIgnoreCase))
                     return OAuthServiceResponse<string>.Failure("invalid_request", "Only S256 code_challenge_method is supported.", 302, null, state, redirectUri, responseMode);
@@ -245,7 +348,7 @@ namespace Luma.Core.Services.Authorization
             if (deleteStateResult == false)
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to delete authorization code state after generating code.", 302, null, state, redirectUri, responseMode);
 
-            if (string.IsNullOrEmpty(code))
+            if (string.IsNullOrWhiteSpace(code))
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to generate authorization code.", 302, null, state, redirectUri, responseMode);
             return OAuthServiceResponse<string>.Success(code, 302, state, redirectUri, responseMode);
         }
