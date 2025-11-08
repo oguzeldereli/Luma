@@ -1,16 +1,17 @@
 ﻿using Luma.Core.Interfaces.Authentication;
+using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace Luma.Web.Providers
 {
-    public class UserLoginSessionCookieAccessor : IUserLoginSessionCookieAccessor
+    public class AuthCodeStateIdCookieAccessor : IAuthorizationCodeStateIdCookieAccessor
     {
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IOptions<LumaOptions> _options;
 
-        public UserLoginSessionCookieAccessor(
+        public AuthCodeStateIdCookieAccessor(
             IHttpContextAccessor contextAccessor, 
             IOptions<LumaOptions> options)
         {
@@ -18,32 +19,32 @@ namespace Luma.Web.Providers
             _options = options;
         }
 
-        public string? GetLoginSessionToken()
+        public string? GetAuthCodeStateIdToken()
         {
             var ctx = _contextAccessor.HttpContext;
             if (ctx == null) return null;
-            ctx.Request.Cookies.TryGetValue(_options.Value.AuthenticationServer.UserLoginSessionsCookieName, out var value);
+            ctx.Request.Cookies.TryGetValue(_options.Value.AuthenticationServer.AuthCodeStateIdCookieName, out var value);
             return value;
         }
 
-        public void SetLoginSessionToken(string token)
+        public void SetAuthCodeStateIdToken(string token)
         {
             var ctx = _contextAccessor.HttpContext;
             if (ctx == null) return;
 
-            ctx.Response.Cookies.Append(_options.Value.AuthenticationServer.UserLoginSessionsCookieName, token, new CookieOptions
+            ctx.Response.Cookies.Append(_options.Value.AuthenticationServer.AuthCodeStateIdCookieName, token, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Expires = DateTime.UtcNow + TimeSpan.FromMinutes(_options.Value.AuthenticationServer.UserLoginSessionsValidForMinutes)
+                Expires = DateTime.UtcNow + TimeSpan.FromMinutes(_options.Value.AuthenticationServer.AuthCodeStateIdCookieValidForMinutes)
             });
         }
 
-        public void ClearLoginSessionToken()
+        public void ClearAuthCodeStateIdToken()
         {
             var ctx = _contextAccessor.HttpContext;
-            ctx?.Response.Cookies.Delete(_options.Value.AuthenticationServer.UserLoginSessionsCookieName);
+            ctx?.Response.Cookies.Delete(_options.Value.AuthenticationServer.AuthCodeStateIdCookieName);
         }
     }
 }

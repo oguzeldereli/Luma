@@ -5,6 +5,8 @@
       "ConnectionString": "Data Source=auth.db"
     },
     "AuthenticationServer": {
+      "AuthCodeStateIdCookieName": "Luma.AuthCodeStateId",
+      "AuthCodeStateIdCookieValidForMinutes": 10, // has to be between 5 and 60 (inclusive)"
       "UserLoginSessionsCookieName": "Luma.UserLoginSession",
       "UserLoginSessionsValidForMinutes": 1440, // has to be between 60 and 10080 (inclusive)
       "EnableUserRegisterationByUI": true,

@@ -19,6 +19,7 @@ namespace Luma.Controllers
         private readonly IClientRepository _clientRepository;
         private readonly IAuthorizeService _authorizeService;
         private readonly ITokenService _tokenService;
+        private readonly IAuthorizationCodeStateIdCookieAccessor _authorizationCodeStateIdCookieAccessor;
         private readonly IUserLoginSessionCookieAccessor _userLoginSessionCookieAccessor;
         private readonly IUserLoginSessionProvider _userLoginSessionProvider;
         private readonly IOptions<LumaOptions> _options;
@@ -27,6 +28,7 @@ namespace Luma.Controllers
             IClientRepository clientRepository,
             IAuthorizeService authorizeService,
             ITokenService tokenService,
+            IAuthorizationCodeStateIdCookieAccessor authorizationCodeStateIdCookieAccessor,
             IUserLoginSessionCookieAccessor userLoginSessionCookieAccessor,
             IUserLoginSessionProvider userLoginSessionProvider,
             IOptions<LumaOptions> options
@@ -35,6 +37,7 @@ namespace Luma.Controllers
             _clientRepository = clientRepository;
             _authorizeService = authorizeService;
             _tokenService = tokenService;
+            _authorizationCodeStateIdCookieAccessor = authorizationCodeStateIdCookieAccessor;
             _userLoginSessionCookieAccessor = userLoginSessionCookieAccessor;
             _userLoginSessionProvider = userLoginSessionProvider;
             _options = options;
@@ -89,6 +92,7 @@ namespace Luma.Controllers
                 }
 
                 stateId = authCodeState.Data.id;
+                _authorizationCodeStateIdCookieAccessor.SetAuthCodeStateIdToken(stateId);
             }
             else
             {
@@ -99,6 +103,7 @@ namespace Luma.Controllers
                 }
 
                 stateId = result.Data;
+                _authorizationCodeStateIdCookieAccessor.SetAuthCodeStateIdToken(stateId);
             }
 
             var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
@@ -144,6 +149,7 @@ namespace Luma.Controllers
                 return auth.ToErrorResponse();
             }
 
+            _authorizationCodeStateIdCookieAccessor.ClearAuthCodeStateIdToken();
             if (request.response_mode == "form_post")
             {
                 return new ContentResult

@@ -9,7 +9,7 @@ namespace Luma.Core.Interfaces.Authentication
     public interface IUserLoginSessionCookieAccessor
     {
         string? GetLoginSessionToken();
-        void SetLoginSessionToken(string token, DateTimeOffset expiresAt);
+        void SetLoginSessionToken(string token);
         void ClearLoginSessionToken();
     }
 }

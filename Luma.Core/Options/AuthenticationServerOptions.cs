@@ -9,6 +9,8 @@ namespace Luma.Core.Options
 {
     public class AuthenticationServerOptions
     {
+        public string AuthCodeStateIdCookieName { get; set; } = "Luma.AuthCodeStateId";
+        public int AuthCodeStateIdCookieValidForMinutes { get; set; } = 10;
         public string UserLoginSessionsCookieName { get; set; } = "Luma.UserLoginSession";
         public int UserLoginSessionsValidForMinutes { get; set; } = 1440;
         public bool EnableUserRegisterationByUI { get; set; } = true;

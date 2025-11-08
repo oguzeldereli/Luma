@@ -20,6 +20,7 @@ namespace Luma.Infrastructure.Extensions
         public static IServiceCollection AddLumaWeb(this IServiceCollection services)
         {
             services.AddScoped<IUserLoginSessionCookieAccessor, UserLoginSessionCookieAccessor>();
+            services.AddScoped<IAuthorizationCodeStateIdCookieAccessor, AuthCodeStateIdCookieAccessor>();
 
             return services;
         }
