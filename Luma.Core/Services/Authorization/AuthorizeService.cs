@@ -17,20 +17,17 @@ namespace Luma.Core.Services.Authorization
 {
     public class AuthorizeService : IAuthorizeService
     {
-        private readonly IParStateProvider _parStateProvider;
         private readonly IClientRepository _clientRepository;
         private readonly IAuthorizationCodeStateProvider _authorizationCodeStateProvider;
         private readonly IAuthorizationCodeProvider _authorizationCodeProvider;
         private readonly IOptions<LumaOptions> _options;
 
         public AuthorizeService(
-            IParStateProvider parStateProvider,
             IClientRepository clientRepository,
             IAuthorizationCodeStateProvider authorizationCodeStateProvider,
             IAuthorizationCodeProvider authorizationCodeProvider,
             IOptions<LumaOptions> options)
         {
-            _parStateProvider = parStateProvider;
             _clientRepository = clientRepository;
             _authorizationCodeStateProvider = authorizationCodeStateProvider;
             _authorizationCodeProvider = authorizationCodeProvider;
@@ -132,7 +129,9 @@ namespace Luma.Core.Services.Authorization
                 }
             }
 
+            var newId = Guid.NewGuid().ToString();
             var codeState = new AuthorizationCodeStateDTO(
+                    id: newId,
                     state: state,
                     clientId: clientId,
                     redirectUri: redirectUri,
@@ -147,11 +146,11 @@ namespace Luma.Core.Services.Authorization
                     loginHint: loginHint,
                     claims: claims);
 
-            var result = await _authorizationCodeStateProvider.SaveAsync(codeState.state, codeState);
+            var result = await _authorizationCodeStateProvider.SaveAsync(newId, codeState);
             if (result == false)
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to store authorization code state.", 302, null, state, request.redirect_uri, request.response_mode ?? "query");
 
-            return OAuthServiceResponse<string>.Success(redirectUri, 302, codeState.state, redirectUri, request.response_mode ?? "query");
+            return OAuthServiceResponse<string>.Success(newId, 302, codeState.state, redirectUri, request.response_mode ?? "query");
         }
 
         public async Task<OAuthServiceResponse<(string clientId, string requestUri)>> CreateParAsync(ParRequestDTO request)
@@ -204,8 +203,7 @@ namespace Luma.Core.Services.Authorization
                     result.RedirectUri);
             }
 
-            var sessionId = await _parStateProvider.StoreParStateAsync(request.state);
-            if (sessionId == null)
+            if (result.Data == null)
             {
                 return OAuthServiceResponse<(string clientId, string requestUri)>.Failure(
                     "server_error",
@@ -217,7 +215,7 @@ namespace Luma.Core.Services.Authorization
             }
 
             return OAuthServiceResponse<(string clientId, string requestUri)>.Success(
-                (request.client_id, "urn:ietf:params:oauth:request_uri:" + sessionId),
+                (request.client_id, "urn:ietf:params:oauth:request_uri:" + result.Data),
                 200,
                 result.State,
                 result.RedirectUri,
@@ -233,32 +231,16 @@ namespace Luma.Core.Services.Authorization
             }
 
             string id = requestUri.Substring(prefix.Length);
-            var state = await _parStateProvider.RetrieveParStateAsync(id);
-            if (state == null)
-            {
-                return OAuthServiceResponse<string>.Failure("invalid_request", "Couldn't find a state associated with the request_uri", 400);
-            }
 
-            return OAuthServiceResponse<string>.Success(state);
+            return OAuthServiceResponse<string>.Success(id);
         }
 
-        public async Task<OAuthServiceResponse<bool>> DeleteParStateAsync(string state)
+        public async Task<ServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string stateId)
         {
-            var remove = await _parStateProvider.RemoveParStateByStateAsync(state);
-            if (remove == false)
-            {
-                return OAuthServiceResponse<bool>.Failure("server_error", "Couldn't remove the par request from the system. Try again.", 500, null, state);
-            }
-
-            return OAuthServiceResponse<bool>.Success(remove);
-        }
-
-        public async Task<ServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string state)
-        {
-            if (string.IsNullOrWhiteSpace(state))
+            if (string.IsNullOrWhiteSpace(stateId))
                 return ServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "The state parameter is required.");
 
-            var result =  await _authorizationCodeStateProvider.GetAsync(state);
+            var result =  await _authorizationCodeStateProvider.GetAsync(stateId);
             if (result == null)
                 return ServiceResponse<AuthorizationCodeStateDTO>.Failure("invalid_request", "The specified state does not exist.");
 
@@ -268,31 +250,32 @@ namespace Luma.Core.Services.Authorization
             return ServiceResponse<AuthorizationCodeStateDTO>.Success(result);
         }
 
-        public async Task<ServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string state)
+        public async Task<ServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string stateId)
         {
-            if (string.IsNullOrWhiteSpace(state))
+            if (string.IsNullOrWhiteSpace(stateId))
                 return ServiceResponse<bool>.Failure("invalid_request", "The state parameter is required.");
             
-            var existingStateResult = await _authorizationCodeStateProvider.GetAsync(state);
+            var existingStateResult = await _authorizationCodeStateProvider.GetAsync(stateId);
             if (existingStateResult == null)
                 return ServiceResponse<bool>.Failure("invalid_request", "The specified state does not exist.");
 
             if (existingStateResult.clientId != clientId)
                 return ServiceResponse<bool>.Failure("invalid_request", "The client_id does not match the stored authorization code state.");
             
-            var deleteResult = await _authorizationCodeStateProvider.DeleteAsync(state);
+            var deleteResult = await _authorizationCodeStateProvider.DeleteAsync(stateId);
             if (deleteResult == false)
                 return ServiceResponse<bool>.Failure("server_error", "Failed to delete the authorization code state.");
 
             return ServiceResponse<bool>.Success(true);
         }
 
-        public async Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(long userId, string state)
+        public async Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(long userId, string stateId)
         {
-            var existingStateResult = await _authorizationCodeStateProvider.GetAsync(state);
+            var existingStateResult = await _authorizationCodeStateProvider.GetAsync(stateId);
             if (existingStateResult == null)
-                return OAuthServiceResponse<string>.Failure("invalid_request", "The specified state does not exist.", 400, null, state, null, null);
+                return OAuthServiceResponse<string>.Failure("invalid_request", "The specified state id does not exist.", 400, null, null, null, null);
 
+            var state = existingStateResult.state;
             var redirectUri = existingStateResult.redirectUri;
             var responseMode = existingStateResult.responseMode;
 
@@ -344,7 +327,7 @@ namespace Luma.Core.Services.Authorization
             if (codeCreated == false)
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to store authorization code.", 302, null, state, redirectUri, responseMode);
 
-            var deleteStateResult = await _authorizationCodeStateProvider.DeleteAsync(state);
+            var deleteStateResult = await _authorizationCodeStateProvider.DeleteAsync(stateId);
             if (deleteStateResult == false)
                 return OAuthServiceResponse<string>.Failure("server_error", "Failed to delete authorization code state after generating code.", 302, null, state, redirectUri, responseMode);
 

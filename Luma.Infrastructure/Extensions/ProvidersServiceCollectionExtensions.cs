@@ -2,7 +2,6 @@
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Options;
-using Luma.Infrastructure.Authorization;
 using Luma.Infrastructure.Providers;
 using Luma.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,6 @@ namespace Luma.Infrastructure.Extensions
             services.AddSingleton<IJwtSigningKeyProvider, JwtSigningKeyProvider>();
             services.AddSingleton<IAuthorizationCodeStateProvider, InMemoryAuthorizationCodeStateProvider>();
             services.AddSingleton<IAuthorizationCodeProvider, InMemoryAuthorizationCodeProvider>();
-            services.AddSingleton<IParStateProvider, InMemoryParStateProvider>();
 
             services.AddScoped<IUserLoginSessionProvider, UserLoginSessionProvider>();
             services.AddScoped<IRefreshTokenProvider, RefreshTokenProvider>();

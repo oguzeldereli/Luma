@@ -44,7 +44,7 @@ namespace Luma.Controllers
         [Route("authorize")]
         public async Task<IActionResult> StartAuthorizationFlowAsync([FromQuery] AuthorizeRequestDTO request)
         {
-            var state = "";
+            var stateId = "";
             if (!string.IsNullOrWhiteSpace(request.request_uri))
             {
                 if (string.IsNullOrWhiteSpace(request.client_id))
@@ -62,13 +62,18 @@ namespace Luma.Controllers
                         .ToErrorResponse();
                 }
 
-                var parState = await _authorizeService.GetParStateAsync(request.request_uri!);
-                if (parState.ErrorCode != null || parState.Data == null)
+                var prefix = $"urn:ietf:params:oauth:request_uri:";
+                var parId = request.request_uri!.StartsWith(prefix) ?
+                    request.request_uri[prefix.Length..] :
+                    request.request_uri;
+                if (string.IsNullOrWhiteSpace(parId))
                 {
-                    return parState.ToErrorResponse();
+                    return OAuthServiceResponse<object>
+                        .Failure("invalid_request", "Invalid request_uri.", 400)
+                        .ToErrorResponse();
                 }
 
-                var authCodeState = await _authorizeService.GetAuthorizationCodeStateAsync(request.client_id, parState.Data);
+                var authCodeState = await _authorizeService.GetAuthorizationCodeStateAsync(request.client_id, parId);
                 if (authCodeState.ErrorCode != null || authCodeState.Data == null)
                 {
                     return OAuthServiceResponse<object>
@@ -83,15 +88,7 @@ namespace Luma.Controllers
                         .ToErrorResponse();
                 }
 
-                var remove = await _authorizeService.DeleteParStateAsync(parState.Data);
-                if (!string.IsNullOrWhiteSpace(remove.ErrorCode) || remove.Data == false)
-                {
-                    return OAuthServiceResponse<object>
-                        .Failure(remove.ErrorCode ?? "server_error", remove.ErrorMessage ?? "Couldn't remove the par state. Try again later.", 302, null, authCodeState.Data.state, authCodeState.Data.redirectUri, authCodeState.Data.responseMode)
-                        .ToErrorResponse();
-                }
-
-                state = parState.Data;
+                stateId = authCodeState.Data.id;
             }
             else
             {
@@ -101,25 +98,25 @@ namespace Luma.Controllers
                     return result.ToErrorResponse();
                 }
 
-                state = result.State;
+                stateId = result.Data;
             }
 
             var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
             if (string.IsNullOrWhiteSpace(token))
             {
-                return Redirect($"/login?state={state}");
+                return Redirect($"/login?stateId={stateId}");
             }
 
             var loginSession = await _userLoginSessionProvider.GetBySessionTokenAsync(token);
             if (loginSession == null)
             {
-                return Redirect($"/login?state={state}");
+                return Redirect($"/login?stateId={stateId}");
             }
 
             var refreshedActivity = await _userLoginSessionProvider.RefreshActivityAsync(loginSession.Id);
             if (!refreshedActivity)
             {
-                return Redirect($"/login?state={state}");
+                return Redirect($"/login?stateId={stateId}");
             }
 
             var prompts = (request.prompt ?? "")
@@ -130,18 +127,18 @@ namespace Luma.Controllers
                 await _userLoginSessionProvider.RevokeAsync(loginSession.Id, "Prompt=login requested");
                 _userLoginSessionCookieAccessor.ClearLoginSessionToken();
 
-                return Redirect($"/login?state={state}");
+                return Redirect($"/login?stateId={stateId}");
             }
             else if (prompts.Contains("consent"))
             {
-                return Redirect($"/consent?state={state}");
+                return Redirect($"/consent?stateId={stateId}");
             }
             else if (prompts.Contains("select_account"))
             {
-                return Redirect($"/select-account?state={state}");
+                return Redirect($"/select-account?stateId={stateId}");
             }
 
-            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, state!);
+            var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, stateId!);
             if (!string.IsNullOrWhiteSpace(auth.ErrorCode))
             {
                 return auth.ToErrorResponse();
@@ -272,6 +269,7 @@ namespace Luma.Controllers
             }
         }
 
+        [HttpPost]
         [Route("introspect")]
         public async Task<IActionResult> IntrospectToken([FromForm] TokenIntrospectionEndpointDTO request)
         {
@@ -302,6 +300,7 @@ namespace Luma.Controllers
             return Ok(result.Data);
         }
 
+        [HttpPost]
         [Route("revoke")]
         public async Task<IActionResult> RevokeToken([FromForm] TokenRevocationEndpointDTO request)
         {
@@ -362,6 +361,7 @@ namespace Luma.Controllers
             return Ok(userInfo.Data);
         }
 
+        [HttpGet]
         [Route(".well-known/openid-configuration")]
         public IActionResult OpenIdProviderMetadata()
         {
@@ -399,6 +399,7 @@ namespace Luma.Controllers
             });
         }
 
+        [HttpGet]
         [Route(".well-known/oauth-authorization-server")]
         public IActionResult OAuthServerMetadata()
         {
@@ -424,6 +425,7 @@ namespace Luma.Controllers
             });
         }
 
+        [HttpGet]
         [Route("jwks.json")]
         [Route("jwks")]
         public async Task<IActionResult> JSONWebKeySet()
@@ -492,6 +494,7 @@ namespace Luma.Controllers
             });
         }
 
+        [HttpGet]
         [Route("logout")]
         public async Task<IActionResult> Logout([FromQuery] string? post_logout_redirect_uri = null)
         {
@@ -527,6 +530,7 @@ namespace Luma.Controllers
             return Ok();
         }
 
+        [HttpPost]
         [Route("registration")]
         public IActionResult ClientRegistration()
         {

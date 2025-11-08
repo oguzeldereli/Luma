@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace Luma.Core.DTOs.Authorization
 {
     public record AuthorizationCodeStateDTO(
+        string id,
         string clientId,
         string state,
         string resource,

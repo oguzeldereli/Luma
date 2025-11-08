@@ -24,9 +24,9 @@ namespace Luma.Infrastructure.Providers
             _cleanupTimer = new Timer(_ => CleanupExpired(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
 
-        public async Task<bool> SaveAsync(string state, AuthorizationCodeStateDTO codeState, int expiresIn = 600)
+        public async Task<bool> SaveAsync(string id, AuthorizationCodeStateDTO codeState, int expiresIn = 600)
         {
-            if (string.IsNullOrEmpty(state))
+            if (string.IsNullOrEmpty(id))
                 return false;
 
             if (codeState == null)
@@ -38,33 +38,33 @@ namespace Luma.Infrastructure.Providers
                 ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresIn)
             };
 
-            _store[state] = entry;
+            _store[id] = entry;
             return true;
         }
 
-        public async Task<AuthorizationCodeStateDTO?> GetAsync(string state)
+        public async Task<AuthorizationCodeStateDTO?> GetAsync(string id)
         {
-            if (string.IsNullOrEmpty(state))
+            if (string.IsNullOrEmpty(id))
                 return null;
 
-            if (_store.TryGetValue(state, out var entry))
+            if (_store.TryGetValue(id, out var entry))
             {
                 if (DateTimeOffset.UtcNow <= entry.ExpiresAt)
                     return entry.Data;
 
-                _store.TryRemove(state, out _);
+                _store.TryRemove(id, out _);
                 return null;
             }
 
             return null;
         }
 
-        public async Task<bool> DeleteAsync(string state)
+        public async Task<bool> DeleteAsync(string id)
         {
-            if (string.IsNullOrEmpty(state))
+            if (string.IsNullOrEmpty(id))
                 return false;
 
-            var removed = _store.TryRemove(state, out _);
+            var removed = _store.TryRemove(id, out _);
             return removed;
         }
 

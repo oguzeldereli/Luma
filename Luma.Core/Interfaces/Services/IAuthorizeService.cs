@@ -13,11 +13,9 @@ namespace Luma.Core.Interfaces.Services
     {
         Task<OAuthServiceResponse<string>> CreateAuthorizationCodeStateAsync(AuthorizeRequestDTO request);
         Task<OAuthServiceResponse<(string clientId, string requestUri)>> CreateParAsync(ParRequestDTO request);
-        Task<OAuthServiceResponse<string>> GetParStateAsync(string requestUri);
-        Task<OAuthServiceResponse<bool>> DeleteParStateAsync(string state);
-        Task<ServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string state);
-        Task<ServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string state);
-        Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(long userId, string state);
+        Task<ServiceResponse<AuthorizationCodeStateDTO>> GetAuthorizationCodeStateAsync(string clientId, string stateId);
+        Task<ServiceResponse<bool>> DeleteAuthorizationCodeStateAsync(string clientId, string stateId);
+        Task<OAuthServiceResponse<string>> GenerateAuthorizationCodeAsync(long userId, string stateId);
         Task<OAuthServiceResponse<AuthorizationCode>> ValidateAndUseAuthorizationCodeAsync(string code, string clientId);
         Task<bool> VerifyPkceCodeVerifierAsync(string codeVerifier, string codeChallenge, string codeChallengeMethod);
     }
