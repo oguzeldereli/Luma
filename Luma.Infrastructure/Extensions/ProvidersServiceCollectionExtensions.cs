@@ -2,6 +2,7 @@
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Options;
+using Luma.Infrastructure.Hosting;
 using Luma.Infrastructure.Providers;
 using Luma.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,8 +21,11 @@ namespace Luma.Infrastructure.Extensions
         {
             services.AddSingleton<IHmacKeyProvider, HmacKeyProvider>();
             services.AddSingleton<IJwtSigningKeyProvider, JwtSigningKeyProvider>();
-            services.AddSingleton<IAuthorizationCodeStateProvider, InMemoryAuthorizationCodeStateProvider>();
-            services.AddSingleton<IAuthorizationCodeProvider, InMemoryAuthorizationCodeProvider>();
+
+            // Shared, multi-instance stores for authorization state and codes (backed by the database).
+            services.AddScoped<IAuthorizationCodeStateProvider, DbAuthorizationCodeStateProvider>();
+            services.AddScoped<IAuthorizationCodeProvider, DbAuthorizationCodeProvider>();
+            services.AddHostedService<ExpiredGrantCleanupService>();
 
             services.AddScoped<IUserLoginSessionProvider, UserLoginSessionProvider>();
             services.AddScoped<IRefreshTokenProvider, RefreshTokenProvider>();

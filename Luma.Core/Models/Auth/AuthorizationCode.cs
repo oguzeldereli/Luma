@@ -16,8 +16,8 @@ namespace Luma.Core.Models.Auth
         public string? CodeChallenge { get; set; }
         public string? CodeChallengeMethod { get; set; }
         public string? Nonce { get; set; }
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public DateTimeOffset ExpiresAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime ExpiresAt { get; set; }
         public long UserId { get; set; }
         public bool Used { get; set; } = false;
     }
