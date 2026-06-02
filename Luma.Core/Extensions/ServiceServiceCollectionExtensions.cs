@@ -2,6 +2,7 @@
 using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Services;
+using Luma.Core.Services.Authentication;
 using Luma.Core.Services.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -18,6 +19,7 @@ namespace Luma.Core.Extensions
         {
             services.AddScoped<IAuthorizeService, AuthorizeService>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             return services;
         }

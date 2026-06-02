@@ -56,7 +56,7 @@ namespace Luma.Infrastructure.Repositories
                 var found = await _context.UserLoginSessions
                     .FirstOrDefaultAsync(s => s.SessionTokenHash == hash && s.SessionTokenKeyId == keyId);
 
-                if (found != null && found.ExpiresAtUtc <= DateTime.UtcNow && found.IsActive)
+                if (found != null)
                     return found;
             }
 

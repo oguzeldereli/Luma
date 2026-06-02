@@ -20,5 +20,7 @@ namespace Luma.Core.DTOs.Authorization
         string? prompt = null,
         int? maxAge = null,
         string? loginHint = null,
-        string? claims = null);
+        string? claims = null,
+        long? authenticatedUserId = null,
+        string? authMethod = null);
 }

@@ -1,5 +1,14 @@
-﻿@{
+@model Luma.Server.ViewModels.SelectAccountViewModel
+@{
     Layout = "_Layout";
-    ViewBag.Title = "Select Account";
+    ViewBag.Title = "Choose an account";
 }
 
+<h1>Choose an account</h1>
+<p class="sub">Continue with your current account, or sign in with a different one.</p>
+
+<form method="post" action="/select-account">
+    @Html.AntiForgeryToken()
+    <button type="submit" name="action" value="continue">Continue as @Model.Email</button>
+    <button type="submit" name="action" value="use_other" class="secondary">Use a different account</button>
+</form>

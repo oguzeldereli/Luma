@@ -22,6 +22,8 @@ namespace Luma.Controllers
         private readonly IAuthorizationCodeStateIdCookieAccessor _authorizationCodeStateIdCookieAccessor;
         private readonly IUserLoginSessionCookieAccessor _userLoginSessionCookieAccessor;
         private readonly IUserLoginSessionProvider _userLoginSessionProvider;
+        private readonly IAuthorizationCodeStateProvider _authorizationCodeStateProvider;
+        private readonly IUserClientContractRepository _userClientContractRepository;
         private readonly IOptions<LumaOptions> _options;
 
         public AuthoriztionController(
@@ -31,6 +33,8 @@ namespace Luma.Controllers
             IAuthorizationCodeStateIdCookieAccessor authorizationCodeStateIdCookieAccessor,
             IUserLoginSessionCookieAccessor userLoginSessionCookieAccessor,
             IUserLoginSessionProvider userLoginSessionProvider,
+            IAuthorizationCodeStateProvider authorizationCodeStateProvider,
+            IUserClientContractRepository userClientContractRepository,
             IOptions<LumaOptions> options
             )
         {
@@ -40,6 +44,8 @@ namespace Luma.Controllers
             _authorizationCodeStateIdCookieAccessor = authorizationCodeStateIdCookieAccessor;
             _userLoginSessionCookieAccessor = userLoginSessionCookieAccessor;
             _userLoginSessionProvider = userLoginSessionProvider;
+            _authorizationCodeStateProvider = authorizationCodeStateProvider;
+            _userClientContractRepository = userClientContractRepository;
             _options = options;
         }
 
@@ -106,27 +112,32 @@ namespace Luma.Controllers
                 _authorizationCodeStateIdCookieAccessor.SetAuthCodeStateIdToken(stateId);
             }
 
-            var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return Redirect($"/login?stateId={stateId}");
-            }
-
-            var loginSession = await _userLoginSessionProvider.GetBySessionTokenAsync(token);
-            if (loginSession == null)
-            {
-                return Redirect($"/login?stateId={stateId}");
-            }
-
-            var refreshedActivity = await _userLoginSessionProvider.RefreshActivityAsync(loginSession.Id);
-            if (!refreshedActivity)
-            {
-                return Redirect($"/login?stateId={stateId}");
-            }
-
             var prompts = (request.prompt ?? "")
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var pendingState = await _authorizationCodeStateProvider.GetAsync(stateId!);
+
+            var token = _userLoginSessionCookieAccessor.GetLoginSessionToken();
+            var loginSession = string.IsNullOrWhiteSpace(token)
+                ? null
+                : await _userLoginSessionProvider.GetBySessionTokenAsync(token);
+
+            if (loginSession != null && !await _userLoginSessionProvider.RefreshActivityAsync(loginSession.Id))
+                loginSession = null;
+
+            // No usable session: either authenticate interactively or, for prompt=none, fail.
+            if (loginSession == null)
+            {
+                if (prompts.Contains("none"))
+                    return OAuthServiceResponse<object>
+                        .Failure("login_required", "Authentication is required but prompt=none was requested.", 302, null,
+                                 pendingState?.state, pendingState?.redirectUri, pendingState?.responseMode)
+                        .ToErrorResponse();
+
+                return Redirect($"/login?stateId={stateId}");
+            }
+
             if (prompts.Contains("login"))
             {
                 await _userLoginSessionProvider.RevokeAsync(loginSession.Id, "Prompt=login requested");
@@ -134,13 +145,27 @@ namespace Luma.Controllers
 
                 return Redirect($"/login?stateId={stateId}");
             }
-            else if (prompts.Contains("consent"))
-            {
-                return Redirect($"/consent?stateId={stateId}");
-            }
-            else if (prompts.Contains("select_account"))
+
+            if (prompts.Contains("select_account"))
             {
                 return Redirect($"/select-account?stateId={stateId}");
+            }
+
+            // Enforce consent for prompt=consent and for any client/scope the user has not yet consented to,
+            // including when an existing session is reused (SSO).
+            var requestedScopes = (pendingState?.scope ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var hasConsent = pendingState != null &&
+                await _userClientContractRepository.HasConsentForScopesAsync(loginSession.UserId, pendingState.clientId, requestedScopes);
+
+            if (prompts.Contains("consent") || !hasConsent)
+            {
+                if (prompts.Contains("none"))
+                    return OAuthServiceResponse<object>
+                        .Failure("consent_required", "User consent is required but prompt=none was requested.", 302, null,
+                                 pendingState?.state, pendingState?.redirectUri, pendingState?.responseMode)
+                        .ToErrorResponse();
+
+                return Redirect($"/consent?stateId={stateId}");
             }
 
             var auth = await _authorizeService.GenerateAuthorizationCodeAsync(loginSession.UserId, stateId!);
@@ -150,28 +175,7 @@ namespace Luma.Controllers
             }
 
             _authorizationCodeStateIdCookieAccessor.ClearAuthCodeStateIdToken();
-            if (request.response_mode == "form_post")
-            {
-                return new ContentResult
-                {
-                    ContentType = "text/html",
-                    Content = $"<html><body onload=\"document.forms[0].submit()\">" +
-                                  $"<form method='post' action='{auth.RedirectUri}'>" +
-                                  $"<input type='hidden' name='code' value='{auth.Data}' />" +
-                                  $"<input type='hidden' name='state' value='{auth.State}' />" +
-                              "</form></body></html>"
-                };
-            }
-            else
-            {
-                var queryParams = new Dictionary<string, string?>
-                {
-                    { "code", auth.Data },
-                    { "state", auth.State }
-                };
-                var redirectUrl = QueryHelpers.AddQueryString(auth.RedirectUri!, queryParams);
-                return Redirect(redirectUrl);
-            }
+            return AuthorizationResponseBuilder.BuildCodeResponse(auth.Data!, auth.State, auth.RedirectUri!, auth.ResponseMode);
         }
 
         [HttpPost]
@@ -382,7 +386,6 @@ namespace Luma.Controllers
                 introspection_endpoint = $"{issuer}/introspect",
                 revocation_endpoint = $"{issuer}/revoke",
                 jwks_uri = $"{issuer}/jwks",
-                registration_endpoint = $"{issuer}/registration",
 
                 scopes_supported = _options.Value.OAuth.SupportedScopes,
                 response_types_supported = new[] { "code" },
@@ -419,7 +422,6 @@ namespace Luma.Controllers
                 revocation_endpoint = $"{currentDomain}/revoke",
                 introspection_endpoint = $"{currentDomain}/introspect",
                 jwks_uri = $"{currentDomain}/jwks",
-                registration_endpoint = $"{currentDomain}/registration",
 
                 scopes_supported = _options.Value.OAuth.SupportedScopes,
                 response_types_supported = new[] { "code" },
@@ -540,7 +542,13 @@ namespace Luma.Controllers
         [Route("registration")]
         public IActionResult ClientRegistration()
         {
-            return Ok();
+            // Dynamic Client Registration (RFC 7591) is not supported: clients are defined in
+            // configuration (luma.config.json). Advertised endpoints omit registration accordingly.
+            return StatusCode(StatusCodes.Status501NotImplemented, new
+            {
+                error = "not_supported",
+                error_description = "Dynamic client registration is not supported. Configure clients in luma.config.json."
+            });
         }
     }
 }

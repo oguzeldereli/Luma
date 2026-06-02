@@ -354,7 +354,7 @@ namespace Luma.Infrastructure.Repositories
             var defaultHash = _tokenHasher.ComputeHashForLookup(plainToken, defaultKeyId);
             var token = await _context.AccessTokens.FirstOrDefaultAsync(t => t.TokenHash == defaultHash && t.TokenHashKeyId == defaultKeyId);
 
-            if (token != null && !token.IsExpired && !token.IsUsed)
+            if (token != null && token.IsActive)
                 return token;
 
             // Try all keys (in case of rotation)
@@ -362,7 +362,7 @@ namespace Luma.Infrastructure.Repositories
             {
                 var hash = _tokenHasher.ComputeHashForLookup(plainToken, keyId);
                 var found = await _context.AccessTokens.FirstOrDefaultAsync(t => t.TokenHash == hash && t.TokenHashKeyId == keyId);
-                if (found != null && !found.IsExpired && !found.IsUsed)
+                if (found != null && found.IsActive)
                     return found;
             }
 

@@ -416,7 +416,7 @@ namespace Luma.Core.Services.Authorization
             // Issue access token for the client (no refresh_token or id_token for client_credentials per spec)
             var (atoken, aplain) = await _accessTokenProvider.CreateForClientAsync(
                 request.client_id,
-                request.resource!,
+                resource,
                 request.scope
             );
 

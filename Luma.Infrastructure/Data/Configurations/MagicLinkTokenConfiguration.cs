@@ -45,6 +45,10 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.Property(t => t.IsUsed)
                 .IsRequired();
 
+            // Magic link tokens belong to a user, not a client.
+            builder.Property(t => t.ClientId)
+                .IsRequired(false);
+
             builder.ToTable("MagicLinkTokens");
         }
     }

@@ -1,6 +1,24 @@
-﻿
+@model Luma.Server.ViewModels.VerifyCodeViewModel
 @{
     Layout = "_Layout";
-    ViewBag.Title = "Verify Code";
+    ViewBag.Title = "Enter your code";
 }
 
+<h1>Enter your code</h1>
+<p class="sub">We sent a verification code to <strong>@Model.Email</strong></p>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="error">@Model.Error</div>
+}
+
+<form method="post" action="/verify-code">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="email" value="@Model.Email" />
+    <label for="code">Verification code</label>
+    <input type="text" id="code" name="code" class="code-box" inputmode="numeric" autocomplete="one-time-code"
+           pattern="[0-9]*" placeholder="000000" required autofocus />
+    <button type="submit">Verify</button>
+</form>
+
+<p class="muted" style="margin-top:16px;"><a href="/login">Start over</a></p>

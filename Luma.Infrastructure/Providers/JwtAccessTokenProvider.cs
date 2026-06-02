@@ -1,6 +1,7 @@
 ﻿using Luma.Core.DTOs.Authorization;
 using Luma.Core.DTOs.Security;
 using Luma.Core.Interfaces.Auth;
+using Luma.Core.Interfaces.Authentication;
 using Luma.Core.Interfaces.Authorization;
 using Luma.Core.Interfaces.Security;
 using Luma.Core.Models.Auth;
@@ -21,22 +22,25 @@ namespace Luma.Infrastructure.Providers
     {
         private readonly IJwtSigningKeyProvider _jwtSigningKeyProvider;
         private readonly IAccessTokenRepository _repository;
+        private readonly IUserRepository _userRepository;
         private readonly AccessTokenOptions _opts;
 
         public JwtAccessTokenProvider(
             IJwtSigningKeyProvider jwtSigningKeyProvider,
             IAccessTokenRepository repository,
+            IUserRepository userRepository,
             IOptions<LumaOptions> options)
         {
             _jwtSigningKeyProvider = jwtSigningKeyProvider;
             _repository = repository;
+            _userRepository = userRepository;
             _opts = options.Value.Tokens.AccessToken;
         }
 
         public async Task<(AccessToken token, string plain)> CreateForUserAsync(long userId, string clientId, string resource, string? scope = null)
         {
             // Retrieve the user (for ExternalId)
-            var user = await _repository.GetUserByTokenIdAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new InvalidOperationException($"User with ID {userId} not found.");
 
@@ -52,8 +56,6 @@ namespace Luma.Infrastructure.Providers
             {
                 new(JwtRegisteredClaimNames.Sub, sub),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(JwtRegisteredClaimNames.Iss, _opts.Issuer),
-                new(JwtRegisteredClaimNames.Aud, resource),
                 new("scope", scp)
             };
 
@@ -86,8 +88,6 @@ namespace Luma.Infrastructure.Providers
             {
                 new(JwtRegisteredClaimNames.Sub, sub),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(JwtRegisteredClaimNames.Iss, _opts.Issuer),
-                new(JwtRegisteredClaimNames.Aud, resource),
                 new("scope", scp)
             };
             var jwtToken = new JwtSecurityToken(
@@ -159,15 +159,11 @@ namespace Luma.Infrastructure.Providers
                 return new TokenIntrospectionResponseDTO(false);
             }
 
-            var active = token != null && !token.IsExpired && !token.IsUsed;
-            var user = await _repository.GetUserByTokenIdAsync(token!.Id);
-            if (user == null)
-            {
-                return new TokenIntrospectionResponseDTO(false);
-            }
+            // Client-credentials tokens have no associated user.
+            var user = token.UserId != null ? await _repository.GetUserByTokenIdAsync(token.Id) : null;
 
             return new TokenIntrospectionResponseDTO(
-                active: active,
+                active: token.IsActive,
                 scope: token.Scope,
                 client_id: token.ClientId,
                 username: user?.Username,

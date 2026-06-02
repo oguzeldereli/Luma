@@ -40,6 +40,13 @@ builder.Services.Configure<LumaOptions>(builder.Configuration.GetSection("Luma")
 var lumaConfig = builder.Configuration.GetSection("Luma").Get<LumaOptions>()!;
 
 // ---------------------------
+// Development key bootstrap
+// Generate a JWT signing keypair on first run if the configured PEM files are missing,
+// so the server is runnable out of the box. Replace these with managed keys in production.
+// ---------------------------
+LumaKeyBootstrap.EnsureJwtKeys(lumaConfig);
+
+// ---------------------------
 // Database
 // ---------------------------
 var databaseConfig = lumaConfig.Database;
@@ -74,8 +81,9 @@ builder.Services.AddLumaServices();
 builder.Services.AddLumaSecurity();
 builder.Services.AddLumaProviders();
 builder.Services.AddLumaRepositories();
+builder.Services.AddLumaNotifications();
 builder.Services.AddLumaWeb();
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 
 // ---------------------------
@@ -109,6 +117,15 @@ else
 // Build app
 // ---------------------------
 var app = builder.Build();
+
+// ---------------------------
+// Ensure database schema exists
+// ---------------------------
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.EnsureCreated();
+}
 
 // ---------------------------
 // Static files (only when using custom static files)

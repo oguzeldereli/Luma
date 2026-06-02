@@ -15,7 +15,7 @@ namespace Luma.Core.Interfaces.Authentication
         Task<(string plain, UserLoginSession session)> CreateAsync(
             long userId,
             string? ipAddress = null,
-            string? userAgemt = null,
+            string? userAgent = null,
             string? clientId = null,
             string? authMethod = null,
             string? metadataJson = null);

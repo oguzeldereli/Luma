@@ -58,8 +58,8 @@ namespace Luma.Infrastructure.Providers
             if (accessToken is null)
                 return RefreshTokenValidationResult.Invalid("Associated access token not found.");
 
-            if (token.Aud != clientId)
-                return RefreshTokenValidationResult.Invalid("Token audience does not match client ID.");
+            if (token.ClientId != clientId)
+                return RefreshTokenValidationResult.Invalid("Token was not issued to this client.");
 
             if (token.IsExpired)
                 return RefreshTokenValidationResult.Invalid("Token is expired.");

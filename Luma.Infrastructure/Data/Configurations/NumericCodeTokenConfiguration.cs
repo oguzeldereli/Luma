@@ -40,6 +40,10 @@ namespace Luma.Infrastructure.Data.Configurations
             builder.Property(t => t.IsUsed)
                 .IsRequired();
 
+            // Numeric code tokens belong to a user, not a client.
+            builder.Property(t => t.ClientId)
+                .IsRequired(false);
+
             builder.ToTable("NumericCodeTokens");
         }
     }

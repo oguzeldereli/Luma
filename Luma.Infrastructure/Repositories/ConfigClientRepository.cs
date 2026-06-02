@@ -24,6 +24,8 @@ namespace Luma.Infrastructure.Repositories
             _clients = _options.Value.OAuth.Clients?.Select(c => new Client
             {
                 ClientId = c.ClientId,
+                DefaultPostLogoutRedirectUri = c.DefaultPostLogoutRedirectUri,
+                PostLogoutRedirectUris = c.PostLogoutRedirectUris ?? new List<string>(),
                 DefaultResource = c.DefaultResource,
                 Resources = c.Resources ?? new List<string>(),
                 ClientSecretSHA256_Base64 = c.ClientSecretSHA256_Base64,

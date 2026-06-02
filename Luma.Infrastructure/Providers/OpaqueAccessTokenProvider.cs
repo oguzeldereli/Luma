@@ -56,15 +56,11 @@ namespace Luma.Infrastructure.Providers
                 return new TokenIntrospectionResponseDTO(false);
             }
 
-            var active = token != null && !token.IsExpired && !token.IsUsed;
-            var user = await _repository.GetUserByTokenIdAsync(token!.Id);
-            if (user == null)
-            {
-                return new TokenIntrospectionResponseDTO(false);
-            }
+            // Client-credentials tokens have no associated user.
+            var user = token.UserId != null ? await _repository.GetUserByTokenIdAsync(token.Id) : null;
 
             return new TokenIntrospectionResponseDTO(
-                active: active,
+                active: token.IsActive,
                 scope: token.Scope,
                 client_id: token.ClientId,
                 username: user?.Username, 

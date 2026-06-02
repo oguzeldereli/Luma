@@ -1,5 +1,22 @@
-﻿@{
+@model Luma.Server.ViewModels.ChooseMethodViewModel
+@{
     Layout = "_Layout";
-    ViewBag.Title = "Choose Method";
+    ViewBag.Title = "Choose a method";
 }
 
+<h1>How would you like to sign in?</h1>
+<p class="sub">Signing in as <strong>@Model.Email</strong></p>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="error">@Model.Error</div>
+}
+
+<form method="post" action="/choose-method">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="email" value="@Model.Email" />
+    <button type="submit" name="method" value="magic">Email me a magic link</button>
+    <button type="submit" name="method" value="code" class="secondary">Email me a 6-digit code</button>
+</form>
+
+<p class="muted" style="margin-top:16px;"><a href="/login">Use a different email</a></p>

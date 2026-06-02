@@ -1,12 +1,41 @@
-﻿<!DOCTYPE html>
-
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>@ViewBag.Title</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewBag.Title - Luma</title>
+    <style>
+        :root { --bg:#0f172a; --card:#ffffff; --fg:#0f172a; --muted:#64748b; --accent:#4f46e5; --accent-fg:#ffffff; --border:#e2e8f0; --error:#dc2626; }
+        * { box-sizing: border-box; }
+        body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+               background:linear-gradient(135deg,#1e293b,#0f172a); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--fg); }
+        .card { background:var(--card); width:100%; max-width:400px; margin:16px; padding:32px; border-radius:16px;
+                box-shadow:0 20px 50px rgba(0,0,0,.35); }
+        .brand { font-weight:700; font-size:20px; margin-bottom:4px; color:var(--accent); }
+        h1 { font-size:20px; margin:0 0 4px; }
+        p.sub { color:var(--muted); margin:0 0 24px; font-size:14px; }
+        label { display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+        input[type=text], input[type=email] { width:100%; padding:11px 12px; border:1px solid var(--border);
+               border-radius:9px; font-size:15px; }
+        input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,70,229,.15); }
+        button, .btn { width:100%; margin-top:18px; padding:12px; border:0; border-radius:9px; background:var(--accent);
+               color:var(--accent-fg); font-size:15px; font-weight:600; cursor:pointer; }
+        button.secondary, .btn.secondary { background:#f1f5f9; color:var(--fg); border:1px solid var(--border); }
+        button:hover { filter:brightness(1.05); }
+        .error { background:#fef2f2; color:var(--error); border:1px solid #fecaca; padding:10px 12px; border-radius:9px;
+               font-size:13px; margin-bottom:16px; }
+        .muted { color:var(--muted); font-size:13px; }
+        .scopes { list-style:none; padding:0; margin:16px 0; }
+        .scopes li { padding:10px 12px; border:1px solid var(--border); border-radius:9px; margin-bottom:8px; font-size:14px; }
+        .row { display:flex; gap:12px; }
+        .row > * { flex:1; }
+        a { color:var(--accent); }
+        .code-box { font-size:22px; letter-spacing:6px; text-align:center; }
+    </style>
 </head>
 <body>
-    <div>
+    <div class="card">
+        <div class="brand">Luma</div>
         @RenderBody()
     </div>
 </body>

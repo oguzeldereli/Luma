@@ -1,5 +1,38 @@
-﻿@{
+@model Luma.Server.ViewModels.LinkSentViewModel
+@{
     Layout = "_Layout";
-    ViewBag.Title = "Link Sent";
+    ViewBag.Title = "Check your email";
 }
 
+<h1>Check your email</h1>
+<p class="sub">We sent a magic link to <strong>@Model.Email</strong>. Open it on any device to continue — this page will update automatically.</p>
+
+<p class="muted" id="status">Waiting for you to click the link…</p>
+
+<p class="muted" style="margin-top:16px;"><a href="/login">Start over</a></p>
+
+<script>
+    (function () {
+        var statusEl = document.getElementById('status');
+        var done = false;
+        function poll() {
+            if (done) return;
+            fetch('/magic/status', { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.authenticated) {
+                        done = true;
+                        statusEl.textContent = 'Link verified! Signing you in…';
+                        window.location.href = '/magic/complete';
+                    } else if (data.expired) {
+                        done = true;
+                        statusEl.textContent = 'This sign-in request has expired. Please start again.';
+                    } else {
+                        setTimeout(poll, 2000);
+                    }
+                })
+                .catch(function () { setTimeout(poll, 3000); });
+        }
+        setTimeout(poll, 2000);
+    })();
+</script>

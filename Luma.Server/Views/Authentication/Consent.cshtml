@@ -1,6 +1,34 @@
-﻿
+@model Luma.Server.ViewModels.ConsentViewModel
 @{
     Layout = "_Layout";
-    ViewBag.Title = "Consent";
+    ViewBag.Title = "Authorize";
+
+    string Describe(string scope) => scope switch
+    {
+        "openid" => "Verify your identity",
+        "profile" => "See your basic profile (name, picture)",
+        "email" => "See your email address",
+        "phone" => "See your phone number",
+        "address" => "See your address",
+        _ => scope
+    };
 }
 
+<h1>@Model.ClientName wants access</h1>
+<p class="sub">Signed in as <strong>@Model.Email</strong></p>
+
+<p class="muted">This will allow <strong>@Model.ClientName</strong> to:</p>
+<ul class="scopes">
+    @foreach (var scope in Model.Scopes)
+    {
+        <li>@Describe(scope)</li>
+    }
+</ul>
+
+<form method="post" action="/consent">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <button type="submit" name="action" value="deny" class="secondary">Deny</button>
+        <button type="submit" name="action" value="allow">Allow</button>
+    </div>
+</form>

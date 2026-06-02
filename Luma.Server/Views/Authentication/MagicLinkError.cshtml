@@ -1,5 +1,9 @@
-﻿@{
+@model Luma.Server.ViewModels.AuthErrorViewModel
+@{
     Layout = "_Layout";
-    ViewBag.Title = "MagicLinkError";
+    ViewBag.Title = "Link problem";
 }
 
+<h1>This link can't be used</h1>
+<div class="error">@(Model?.Description ?? "The magic link is invalid or has expired.")</div>
+<p class="muted" style="margin-top:16px;"><a href="/login">Start over</a></p>

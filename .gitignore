@@ -8,6 +8,8 @@
 Luma.Server/Keys
 Luma.Infrastructure/Data/Migrations
 auth.db
+auth.db-shm
+auth.db-wal
 
 # DotEnv files
 .env

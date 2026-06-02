@@ -1,5 +1,17 @@
-﻿@{
+@model Luma.Server.ViewModels.ProfileViewModel
+@{
     Layout = "_Layout";
-    ViewBag.Title = "Profile";
+    ViewBag.Title = "Your profile";
 }
 
+<h1>Your profile</h1>
+<ul class="scopes">
+    <li><strong>Email:</strong> @Model.Email @(Model.EmailVerified ? "✓" : "(unverified)")</li>
+    @if (!string.IsNullOrWhiteSpace(Model.FullName))
+    {
+        <li><strong>Name:</strong> @Model.FullName</li>
+    }
+</ul>
+<form method="get" action="/logout">
+    <button type="submit" class="secondary">Sign out</button>
+</form>

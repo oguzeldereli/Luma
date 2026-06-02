@@ -22,6 +22,7 @@ namespace Luma.Infrastructure.Extensions
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserLoginSessionRepository, UserLoginSessionRepository>();
+            services.AddScoped<IUserClientContractRepository, UserClientContractRepository>();
 
             services.AddSingleton<IClientRepository, ConfigClientRepository>();
 

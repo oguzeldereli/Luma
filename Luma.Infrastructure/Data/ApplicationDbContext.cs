@@ -13,6 +13,9 @@ namespace Luma.Infrastructure.Data
         public DbSet<NumericCodeToken> NumericCodeTokens => Set<NumericCodeToken>();
         public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<UserClientContract> UserClientContracts => Set<UserClientContract>();
+        public DbSet<AuthorizationCode> AuthorizationCodes => Set<AuthorizationCode>();
+        public DbSet<AuthorizationCodeState> AuthorizationCodeStates => Set<AuthorizationCodeState>();
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }

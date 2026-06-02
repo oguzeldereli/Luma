@@ -6,7 +6,7 @@
     },
     "AuthenticationServer": {
       "AuthCodeStateIdCookieName": "Luma.AuthCodeStateId",
-      "AuthCodeStateIdCookieValidForMinutes": 10, // has to be between 5 and 60 (inclusive)"
+      "AuthCodeStateIdCookieValidForMinutes": 10, // has to be between 5 and 60 (inclusive)
       "UserLoginSessionsCookieName": "Luma.UserLoginSession",
       "UserLoginSessionsValidForMinutes": 1440, // has to be between 60 and 10080 (inclusive)
       "EnableUserRegisterationByUI": true,
@@ -16,27 +16,58 @@
         "Path": "./wwwroot"
       }
     },
+    "Email": {
+      // Logging: writes the email (incl. magic links / codes) to the application log. Great for local development.
+      // Smtp: delivers via the SMTP server configured below.
+      "DeliveryMethod": "Logging",
+      "FromAddress": "no-reply@luma.local",
+      "FromName": "Luma Auth",
+      "Smtp": {
+        "Host": "",
+        "Port": 587,
+        "UseStartTls": true,
+        "Username": "",
+        "Password": ""
+      }
+    },
     "OAuth": {
-      "ScopesSupported": [ "openid", "profile", "email", "phone", "address" ],
-      "ParExpirationSeconds" : 90, // has to be between 60 and 120 (inclusive)
+      "SupportedScopes": [ "openid", "profile", "email", "phone", "address" ],
+      "ParExpirationSeconds": 90, // has to be between 60 and 120 (inclusive)
       "AuthorizationCode": {
         "ValidForSeconds": 90 // has to be between 60 and 120 (inclusive)
       },
       "Clients": [
         {
+          // Confidential client. Secret (plain) for local testing: "luma-dev-secret"
           "ClientId": "luma-self-hosted",
           "DefaultPostLogoutRedirectUri": "https://localhost/signout-callback-oidc",
           "PostLogoutRedirectUris": [ "https://localhost/signout-callback-oidc" ],
           "DefaultResource": "https://localhost",
           "Resources": [ "https://localhost" ],
-          "ClientSecretSHA256_Base64": "Y2UyMGQ3OWRlNjRiYzk2M2ZlMjljYmNmYzNlMDNmZTE2MWIzYTQ1ZDc2YzJmYzNiYmY2NmExZWY3OGViYjdiZA==",
+          "ClientSecretSHA256_Base64": "fmiAFuUBIch2n4ensNUEV4zVKRnxpcHU+6TCUbWwHlQ=",
           "DisplayName": "Luma Auth",
-          "DefaultRedirectUri": "https://localhost/calback",
-          "RedirectUris": [ "https://localhost/calback" ],
+          "DefaultRedirectUri": "https://localhost/callback",
+          "RedirectUris": [ "https://localhost/callback" ],
           "AllowedGrantTypes": [ "client_credentials", "authorization_code", "refresh_token" ],
           "DefaultScope": "openid profile email",
           "AllowedScopes": [ "openid", "profile", "email" ],
           "IsConfidential": true
+        },
+        {
+          // Public client (e.g. SPA / native). PKCE is mandatory for public clients.
+          "ClientId": "luma-spa",
+          "DefaultPostLogoutRedirectUri": "https://localhost/signout-callback-oidc",
+          "PostLogoutRedirectUris": [ "https://localhost/signout-callback-oidc" ],
+          "DefaultResource": "https://localhost",
+          "Resources": [ "https://localhost" ],
+          "ClientSecretSHA256_Base64": "",
+          "DisplayName": "Luma SPA",
+          "DefaultRedirectUri": "https://localhost/callback",
+          "RedirectUris": [ "https://localhost/callback" ],
+          "AllowedGrantTypes": [ "authorization_code", "refresh_token" ],
+          "DefaultScope": "openid profile email",
+          "AllowedScopes": [ "openid", "profile", "email" ],
+          "IsConfidential": false
         }
       ]
     },
@@ -60,16 +91,17 @@
     },
     "Keys": {
       "Hmac": {
-        "DefaultKeyId": "",
+        "DefaultKeyId": "V1",
         "Keys": {
-          /* "key-id" : "base64-" */
+          // "key-id": "base64-encoded-256-bit-key". Replace this dev key in production
+          // or supply it via the LUMA_HMACSHA256_KEY_V1 environment variable.
+          "V1": "ZjSs+7o5vjiWLfAXO9ab/Ap/TVX1mA2oZvScbMKi13E="
         }
       },
       "Jwt": {
         "SigningAlgorithm": "RS256", // or ES256
         "DefaultKeyId": "V1",
         "Keys": {
-          /* "key-id" : { "PrivateKeyPath" : "path", "PublicKeyPath" : "path" } */
           "V1": {
             "PrivateKeyPath": "./Keys/private.pem",
             "PublicKeyPath": "./Keys/public.pem"

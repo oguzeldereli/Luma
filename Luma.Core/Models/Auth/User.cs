@@ -39,6 +39,7 @@ namespace Luma.Models.Auth
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public UserStatus Status { get; set; } = UserStatus.Active;
         public List<UserLoginSession> LoginSessions { get; set; } = new List<UserLoginSession>();
+        public List<UserClientContract> ClientContracts { get; set; } = new List<UserClientContract>();
 
         public string GetFullName()
         {

@@ -319,8 +319,8 @@ namespace Luma.Core.Services.Authorization
                 Scope = existingStateResult.scope ?? client.DefaultScope,
                 Nonce = existingStateResult.nonce,
                 UserId = userId,
-                CreatedAt = DateTimeOffset.UtcNow,
-                ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(expiresIn)
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn)
             };
 
             var codeCreated = await _authorizationCodeProvider.SaveAsync(code, entry, expiresIn);

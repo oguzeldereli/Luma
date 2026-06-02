@@ -1,6 +1,13 @@
-﻿
+@model Luma.Server.ViewModels.AuthErrorViewModel
 @{
     Layout = "_Layout";
-    ViewBag.Title = "Error";
+    ViewBag.Title = "Something went wrong";
 }
 
+<h1>Something went wrong</h1>
+<div class="error">@(Model?.Description ?? Model?.Error ?? "An unexpected error occurred.")</div>
+@if (Model != null && !string.IsNullOrEmpty(Model.Error))
+{
+    <p class="muted">Error code: <code>@Model.Error</code></p>
+}
+<p class="muted" style="margin-top:16px;"><a href="/login">Return to sign in</a></p>
